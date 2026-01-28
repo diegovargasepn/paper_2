@@ -1,0 +1,681 @@
+\documentclass[11pt,a4paper]{amsart}
+
+\usepackage{geometry, empheq}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, amsthm, amsfonts}
+\usepackage{xcolor, graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumerate}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{comment}
+\usepackage{relsize}
+
+%---------------------- Custom commands ----------------------%
+\def\b#1{{\mbox{\boldmath $#1$}}}
+\def\lewz#1{\leqno(#1)}
+\newcommand{\ak}{\hspace{20pt}}
+\newcommand{\bak}{\parindent=0pt}
+\newcommand{\sm}{\smallskip}
+\newcommand{\bs}{\bigskip}
+\newcommand{\arrow}{\rightarrow}
+\newcommand{\ds}{\displaystyle}
+\newcommand{\kr}{\hspace{-0.2cm}{\bf.~}}
+\newcommand{\kw}{\rule{2mm}{2mm}}
+\newcommand{\ged}{\hfill\kw}
+\newcommand{\pf}{\b{Proof.} \ }
+\newcommand{\ssn}{({\bf SSN}) }
+\renewcommand{\div}{\text{div\,}}
+\newtheorem{example}{\textbf{Example}}
+\renewcommand{\l}{\left}
+\renewcommand{\r}{\right}
+\newcommand{\om}{\Omega}
+\newcommand{\ga}{\Gamma}
+\newcommand{\fsparse}{\Upsilon}
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\sign}{\mathrm{sign}}
+\newcommand{\warrow}{\rightharpoonup}
+\def\thesection{\arabic{section}}
+\def\thesubsection{\arabic{section}.\arabic{subsection}}
+\def\thefigure{\arabic{figure}\normalfont}
+\def\thetable{\arabic{table}\normalfont}
+\newcommand{\nota}[1]{ \colorbox{red}{\textcolor{white}{\tiny{#1}}}}
+\DeclareMathOperator{\argmin}{argmin}
+\DeclareMathOperator{\proj}{Proj}
+\renewenvironment{proof}{{Proof.}}{\hfill\kw}
+\newcounter{theassumption}
+\setcounter{theassumption}{0}
+\newtheorem{assumption}[theassumption]{{Assumption}}
+\newtheorem{proposition}{{Proposition}}
+\newtheorem{definition}{{Definition}}
+\newtheorem{lemma}{{Lemma}}
+\newtheorem{remark}{{Remark}}
+\newtheorem{corollary}{{Corollary}}
+\newtheorem{theorem}{{Theorem}}
+\newcommand{\cor}{\color{red}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\subtag}[1]{\tag{\theparentequation#1}}
+
+\begin{document}
+	\title[Sparse optimal control]{Regularized semi-smooth Newton method for elliptic optimal control problems with sparsity}
+	%\title{Numerical solution of nonconvex PDE--constrained optimization problems via DC programing}
+	
+	\author{Pedro Merino$^\ddag$ and Diego Vargas$^\ddag$}
+	%\address{}
+	\address{$^\ddag$Research Center of Mathematical Modeling (MODEMAT) and Escuela Polit\'ecnica Nacional, Quito, Ecuador}
+	\keywords{}
+	\subjclass[2010]{90C26, 90C46, 49J20, 49K20}
+	\thanks{$^*$This research has been partially supported by the  Ph.D program on Applied Mathematics Escuela Polit\'ecnica Nacional, Quito--Ecuador.}
+	
+	\smallskip
+\begin{abstract}
+In this paper, we propose a  semismooth Newton scheme for the numerical solution of an optimal control problem governed by elliptic partial differential equations involving a $L^0$-pseudonorm penalty in the cost function. The method is based on the associated optimality system, which is appropriately formulated and regularized to satisfy the requirements of the SSN framework. We provide rigorous local convergence results for the proposed method.  Several numerical experiments are conducted to illustrate and support the theoretical properties established in our work.
+
+\end{abstract}
+	
+\maketitle 
+
+\section{Introduction}
+
+The numerical solution of optimal control problems governed by partial differential equations (PDEs) is a subject of extensive research interest due to its significant theoretical challenges and practical applications across various disciplines. Among other numerical methods for solving optimal control problems, the semi-smooth Newton method (SSN) has received considerable attention due to its convergence properties, its efficacy in handling nonsmooth structures (present in the associated optimality systems derived from optimization problems) and its close relation with primal-dual active set methods. Particularly when control, mixed, and state constraints are imposed. See, for instance, \cite{ulbrich2002}, \cite{ito2003semi}, \cite{hint02primal}.
+
+A particular class of sparse optimal control problems arises when nonsmooth penalizers of the control are incorporated into the objective function, such as the $L^1$-norm~\cite{stadler2006}, $L^q$-quasinorm ($q\in (0,1)$)~\cite{itokun2014, Merino2019}, or $L^0$-pseudonorm~\cite{wachsmuth19,CasasMateos2024}. Among other penalties, those mentioned above have received substantial attention in optimal control of PDEs for promoting sparsity in the solutions, i.e. functions with smaller supports than those generated with the usual $L^2$-norm Tikhonov penalizer, whose solutions are distributed throughout the entire domain. This property is relevant from a practical point of view because controls with smaller supports translate into resource saving strategies when implementing controls in practice, for example \cite{herme24}.
+
+In this article, we address the numerical solution of optimal control problems governed by semilinear elliptic partial differential equations, where the cost functional includes a sparsity-promoting term based on the $L^0$-pseudonorm of the control. In addition, pointwise constraints are imposed on the control variable. Sparsity-inducing regularizations, such as the $L^0$-pseudonorm, have received growing attention due to their ability to promote spatially sparse optimal controls; see, for instance, \cite{itokun2014, wachsmuth19}. Specifically, the $L^0$-pseudonorm penalizes the measure of the support of the control, yielding solutions that activate the control only in subregions of the domain. Moreover, this kind of optimal controls involves jump discontinuities in the boundary of its support that can be estimated. This property is especially valuable in applications where global control activation is impractical or economically inefficient.
+
+An early application of the semismooth Newton method to sparse optimal control problems is due to Stadler \cite{stadler2006}, who considered a linear elliptic problem with $L^1$-penalization and pointwise control constraints. In that setting, the cost functional remains convex and continuous. Therefore, necessary optimality conditions are also sufficient, which enables the derivation of a superlinear convergent semismooth Newton scheme. In fact, the associated optimality conditions can be expressed in terms of semismooth functions whose generalized derivatives are known and can be implemented explicitly. The semilinear case was extended by Casas et al. \cite{CasasMateos2024}, where second-order optimality conditions were applied to analyze a semismooth Newton method. In particular, second-order sufficient conditions with minimal gap with respect to the necessary one, were utilized to deduce boundedness of the inverses of the corresponding terms in the SSN formulation.  
+
+The $L^0$-pseudonorm penalizer was considered by Ito and Kunisch in \cite{itokun2014}, where necessary optimality conditions were derived first by means of the Pontryagin's maximum principle. The existence of generalized solutions (in terms of multifunctions) is given for the associated optimality system, using the theory of maximal monotone operators. In the linear elliptic case, it turns out that a solution of the optimality system is a unique global minimizer of the optimal control problem by relying on a structural assumption of a zero-measure condition on a certain level of the adjoint state. In fact, Wachsmuth \cite{wachsmuth19} constructed an example without this assumption, in which the optimal control problem might not have a solution. 
+
+ 
+
+{\color{red} One of the main challenges in the numerical treatment of such problems stems from the presence of the $L^0$-term, which breaks both the convexity and continuity of the cost functional. Consequently, standard techniques from the theory of convex optimal control become inapplicable when establishing existence results or deriving optimality systems amenable to numerical implementation.}
+
+%A pioneering contribution in this direction is the work of Ito and Kunisch \cite{itokun14}, where the authors study elliptic optimal control problems involving $L^0$-sparsity. They prove the existence—and under certain structural assumptions, uniqueness—of optimal solutions. Moreover, they propose a primal-dual method for the unconstrained version of the problem. However, convergence issues were observed for specific parameter regimes, which prompted the introduction of a regularized variant of the algorithm. This modification significantly improved performance in limiting cases where the original method failed to converge.
+
+
+
+%A subsequent generalization to semilinear PDE-constrained problems with $L^1$ regularization was presented in \cite{casasmateos}. The presence of nonlinearities in the state equation motivated the derivation of second-order optimality conditions, which are essential to establish the superlinear convergence of the semismooth Newton method in this more general context.
+
+%In the present work, although we consider control constraints only, we focus on problems with $L^0$-sparsity-promoting terms. The second-order theory developed in \cite{casaswach} for semilinear PDEs with $L^0$-regularization provides a solid analytical foundation for the design and convergence analysis of semismooth Newton-type algorithms in this nonconvex and nonsmooth setting.
+
+
+
+In the present paper, we build on this theoretical foundation to develop a numerical scheme based on a semismooth Newton method for solving the aforementioned class of optimal control problems. The second-order conditions established in \cite{casaswachsmuth} play a crucial role in justifying the application and convergence of such Newton-type algorithms. Our approach emphasizes the combination of nonsmooth optimization tools with sparse control frameworks, aiming to provide both rigorous analysis and efficient numerical performance.
+
+We organize the paper as follows. In Section 2, we introduce the elliptic optimal control problem with sparsity-promoting $L^0$-penalization. Section 3 recalls the first-order optimality conditions and presents a suitable reformulation of the optimality system to enable the application of a semismooth Newton method. The proposed numerical algorithm is analyzed in Section 4, where we also discuss its implementation and convergence properties. In Section 5, we report and analyze a set of numerical experiments that illustrate the performance and accuracy of the method. Finally, Section 6 provides a brief summary and concluding remarks.
+\section{Problem formulation and optimality conditions}
+
+Let $\om \in \reals^{n}$ with $n=2, 3$ with Lipschitz boundary $\Gamma$. Let us consider the following second-order elliptic differential operator:
+\[
+    (Ay)(x) = - \sum_{i,j=1}^n \frac{\partial}{\partial x_i}	\l( a_{ij}(x)\frac{\partial y(x)} {\partial x_j }\r) +c_0 y(x),
+\]
+with coefficients  $c_0 \geq 0$  ($c_0 \not =0$) in  $L^\infty(\om)$ and  $a_{ij}$  in $L^\infty(\om)$ for all $i,j\in \{1,\cdots,n\}$ satisfying
+\begin{equation}\label{pdecondition}
+    \sum_{i,j=1}^{n}a_{ij}(x)\xi_{i}\xi_{j} \ge \kappa\norm{\xi}^2, \quad \text{for all} \quad \xi\in \reals^n.
+\end{equation}
+Moreover, we define two Carathéodory functions $a, L:\om\times\reals\to \reals$ of a class $C^2$ respect to the second variable, that satisfy the following.
+
+{\color{red} Revisar y reescribir la siguiente suposición, ya que se necesita $\tilde p$}
+\begin{assumption}\label{as:nonlinearities_regularity}
+ \begin{enumerate}[(i)]~
+    \item $a(\cdot,0)\in L^{\tilde p}(\om)$ for some $\tilde p>n/2$,
+    \item $\dfrac{\partial a}{\partial y}(x,y)\ge 0$ for almost all $x\in \om$.
+    \item For any $M>0$, there exists a constant $C>0$, depending on $a$ and $M$, such that
+    \[
+    \l\lvert \frac{\partial a}{\partial y}(x,y) \r\rvert + \l\lvert \frac{\partial^2 a}{\partial y^2}(x,y) \r\rvert\le C,
+    \]
+    for almost all $x\in \om$ and $|y|\le M$,
+    \item for every $M > 0$ and $\varepsilon > 0$ there exists $\delta > 0$, depending on $M$ and $\varepsilon$, such that
+    \[
+    \left| \frac{\partial^2 a}{\partial y^2}(x, y_2) - \frac{\partial^2 a}{\partial y^2}(x, y_1) \right| < \varepsilon 
+    \]
+    if $|y_1|, |y_2| \leq M$, $|y_2 - y_1| \leq \delta$, and for almost all $x \in \Omega$,
+    \item $L(\cdot, 0)\in L^1(\om)$,
+    \item for all $M>0$ there exists a constant $C>0$ depending on $L$ and $M$, and a function $\psi$ depending on $M$ and belonging to $L^{p}(\om)$ with $p>n/2$ such that for every $|y|\le M$ and almost all $x\in \om$:
+    \[
+    \l| \frac{\partial L}{\partial y}(x,y) \r|\le \psi(x),\quad \l|\frac{\partial^2 L}{\partial y^2}(x,y)\r|\le C,
+    \]
+    \item for every $M > 0$ and $\varepsilon > 0$ there exists $\delta > 0$, depending on $M$ and $\varepsilon$, such that
+    \[
+    \left| \frac{\partial^2 L}{\partial y^2}(x, y_2) - \frac{\partial^2 L}{\partial y^2}(x, y_1) \right| < \varepsilon 
+    \]
+    if $|y_1|, |y_2| \leq M$, $ |y_2 - y_1| \leq \delta$, and for almost all $x \in \Omega$.
+\end{enumerate}   
+\end{assumption}
+
+ Thanks to Assumptions \ref{as:nonlinearities_regularity} (i)-(iv) established in \cite{CasasMateos2024}, it can be shown that, for any $u\in L^p(\om)$ ($p>n/2$), the semilinear elliptic problem given by
+\begin{equation}\label{eq:state}
+\begin{aligned}
+    Ay(x) + a(x, y(x)) &= u(x), &&\text{in } \Omega, \\
+    y(x) &= 0, &&\text{over } \Gamma.
+\end{aligned}
+\end{equation}
+has a unique solution in $ H_0^{1}(\om)\cap C(\bar \om)$ denoted by $y=y(u)$, which satisfies
+\begin{equation}\label{eq:y_boundedness}
+    \|y\|_{H_0^1(\om)} + \|y\|_{C(\bar\om)} \leq K(\|u\|_{L^p(\om)} + \|a(\cdot,0)\|_{L^{\tilde p}(\om)})
+\end{equation}
+for some positive constant $K$. This result implies the existence of a class $C^2$ control-to-state mapping $S:L^p(\om)\to H_0^1(\om)\cap C(\bar\om)$ defined by $y=S(u)$, solution of \eqref{eq:state} see \cite{CasasMateos2024}.
+
+\subsection{The optimal control problem with $L^0$ penalty}
+The $L^0$-pseudonorm of a control $u$, is defined by $\norm{u}_{0}:=\mbox{meas}\{x\in \om: u(x)\ne 0\}$. Equivalently, 
+\[
+\norm{u}_{0}= \int_\om |u(x)|_0 \,dx , \quad \text{where} \quad  |t|_0:=\begin{cases}    
+    1,&t\ne 0\\
+    0,&t=0.\\
+\end{cases}
+\]
+
+For constants $\alpha>0$, $\beta>0$ and $\delta>0$, the sparse optimal control problem is formulated as follows:
+\begin{equation}\label{eq:P}\tag{$P$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times U_{ad}}\; J(y,u)=\int_{\om}L(x,y(x))\; dx+\frac{\alpha}{2}\norm{u}^2_{L^2(\om)}+\beta \norm{u}_0\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+     Ay(x)+a(x,y(x))&=u(x), &\mbox{in } \om,\\
+        y(x)&=0,  &\mbox{over } \Gamma  
+     \end{array}\\
+     U_{ad}=\{u\in L^2(\om): |u(x)|\le \delta, \text{ a.a }x\in \om\}
+    \end{cases}
+\end{equation}
+This problem has been considerd by \cite{itokun2014}
+
+\begin{comment}In general we suppose for simplicity that $\jmath_{\alpha,\beta}\le\delta$. Under this hypothesis, the existence of local solutions for \eqref{P} can be proven \cite[Corollary 4.3]{casaswa}. For the reader's convenience, we outline the main idea behind the existence proof for the problem. First of all, using the \textit{convexification} of the function $\frac{\alpha}{2}|\cdot|^2+\cdot|_0$ defined as
+\[
+g(t):=\begin{cases}
+    \frac{\alpha}{2}|t|^2+\beta,& |t|>\jmath_{\alpha,\beta},\\
+    \omega_{\alpha,\beta}|t|, & |t|\le\jmath_{\alpha,\beta},
+\end{cases}
+\]
+we define the convex problem:
+\begin{equation}\label{eq:P_convex}\tag{$\hat{P}$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; \jmath_{\alpha,\beta}(y,u)=\int_{\om}L(x,y(x))\; dx+\int_{\om}g(u(x))\; dx\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+     Ay(x)+a(x,y(x))&=u(x), &\mbox{in } \om,\\
+        y(x)&=0,  &\mbox{over } \Gamma,\\    
+         |u(x)|&\leq \delta, &\mbox{in almost all }x\in \Omega,
+     \end{array}
+    \end{cases}
+\end{equation}
+and,
+\end{comment}
+
+\subsection{Optimality conditions} In the following, we will use the quantities
+%We define the value of the jump discontinuity  by $\jmath_{\alpha,\beta} := \sqrt{2\dfrac{\beta}{\alpha}}$
+$$ \jmath_{\alpha,\beta} := \sqrt{2\dfrac{\beta}{\alpha}}, \qquad \text{and} \qquad \omega_{\alpha,\beta} =\alpha \jmath_{\alpha,\beta} =\sqrt{2\alpha \beta}.  $$
+Let us review the optimality conditions of a local solution $\bar u$ for \eqref{eq:P}. Let $\bar y$ the associated state. Let $A^*$ be the adjoint operator of $A$. We recall that the adjoint equation associated with the optimal control problem \eqref{eq:P} is given by
+\begin{equation}\label{eq:adj_state}
+\begin{aligned}
+    A^*\varphi(x) + \frac{\partial a}{\partial y}(x, y(x))\varphi(x) &= \frac{\partial L}{\partial y}(x,y(x)), &&\text{in } \Omega, 
+    \\    \varphi(x) &= 0, &&\text{over } \Gamma.
+\end{aligned}
+\end{equation}
+By assumptions (v)-(vii) on $L$, following  \cite{casas94, casw}, there exists a solution $\varphi\in H_0^1(\om)\cap C(\bar\om)$ of \eqref{eq:adj_state} such that {\color{red} resultado de continuidad respecto a los datos y definición del operador $T$ , $\varphi=T(y)$  }.
+
+
+
+
+The authors in \cite{itokun2014} derived necessary optimality conditions for optimal controls by applying a Pontryagin's maximum principle. For this, the Hamiltonian associated to \eqref{eq:P} see \cite{itokun2014,wachsmuth19,caswach20} was defined by $H:\om\times\mathbb{R}^3\to\mathbb{R}$, 
+\[
+H(x,y,u,\varphi):=L(x,y)+\frac{\alpha}{2}u^2+\beta|u|^0,
+\]
+Therefore,  $\bar u$ is a local solution for \eqref{eq:P}, then the Pontryagin's maximum principle establishes that:
+\[
+H(x,\bar y(x), \bar u(x), \varphi(x))\le H(x,\bar y(x), u, \varphi(x)), \qquad \text{for all }u\in [-\delta,\delta],
+\]
+is satisfied for almost all $x\in\om$. This relation amounts to solve a one-dimensional quadratic function with an additional penalizer $|\cdot|_0$ in the cost function which can be solved, for instance, using the hard-thresholding operator, see \cite{itokun04} or Lemma 3.2 in \cite{caswach20}. Using these results, the following optimality system is derived for a local solution $\bar u \in U_{ad}$:
+
+\begin{subequations}\label{eq:optimal_system_P0}
+	\begin{align}
+&\begin{array}{rlc}
+	A\bar y + a(\cdot, \bar y) & = \bar u & \text{ in } \om, \\
+      \bar y &= 0 & \text{ on } \ga, 
+\end{array}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi + \dfrac{\partial a}{\partial y}(\cdot,\bar y) & = \dfrac{\partial L}{\partial y}(\cdot,\bar y)& \text{ in } \om, \\
+      \varphi &= 0 & \text{ on } \ga ,
+\end{array} \label{eq:optimal_system_P0_b}\\
+& \bar u(x) = 
+\begin{cases} 
+-\delta \,\sign(\varphi(x)), &\text{if}\quad |\varphi(x)| > \frac{\alpha \delta}{2} + \frac{\beta}{\delta} \text{ and } |\varphi(x)| \ge \alpha\delta,\\
+-\delta \,\sign(\varphi(x)), \quad\text{or}\quad 0, &\text{if}\quad |\varphi(x)| = \frac{\alpha \delta}{2} + \frac{\beta}{\delta} \text{ and } |\varphi(x)| \ge \alpha\delta,\\
+0, & \text{if}\quad |\varphi(x)| <\frac{\alpha \delta}{2} + \frac{\beta}{\delta} \text{ and } |\varphi(x)| \ge \alpha\delta,\\
+-\dfrac{\varphi}{\alpha},&\text{if}\quad\omega_{\alpha,\beta}< |\varphi(x)|<\alpha\delta \vspace{2mm}\\
+-\dfrac{\varphi}{\alpha}, \quad\text{or}\quad 0&\text{if}\quad\omega_{\alpha,\beta}= |\varphi(x)|<\alpha\delta \\
+0, &|\varphi(x)|<\omega_{\alpha,\beta}
+\end{cases}
+, \label{eq:optimal_system_P0_c}
+\end{align}
+\end{subequations}
+% where $\Phi$ is defined by 
+% \begin{equation}
+%  \Phi(\cdot) = 
+% \begin{cases} 
+% \delta \,\sign(\cdot), &|\cdot|\ge \alpha \delta\\
+% \dfrac{\varphi}{\alpha},&\omega_{\alpha,\beta}\le |\cdot|<\alpha\delta\\
+% 0, &|\cdot|<\omega_{\alpha,\beta}
+% \end{cases} \label{eq:thoperator}
+% \end{equation}
+ 
+The quantity $\jmath_{\alpha,\beta}$ represents the jump discontinuities (positive or negative) of the optimal control. The condition \eqref{eq:optimal_system_P0_c} can handle the case where the jump discontinuity exceeds the box constraints. Here, for simplicity, we assume that  $-\delta<-\jmath_{\alpha,\beta}<\jmath_{\alpha,\beta}<\delta$. Under this assumption the case where $\delta< \jmath_{\alpha,\beta}$ is neglected. In fact, assuming that $\jmath_{\alpha,\beta}<\delta$, \eqref{eq:optimal_system_P0_c} reduces to:
+\begin{equation}
+\bar u(x) = 
+\begin{cases} 
+-\delta \,\sign(\varphi(x)), &\text{if}\quad  |\varphi(x)| \ge \alpha\delta,\\
+-\dfrac{\varphi}{\alpha},&\text{if}\quad\omega_{\alpha,\beta}< |\varphi(x)|<\alpha\delta, \vspace{2mm}\\
+-\dfrac{\varphi}{\alpha}, \quad\text{or}\quad 0&\text{if}\quad\omega_{\alpha,\beta}= |\varphi(x)|<\alpha\delta, \\
+0, &|\varphi(x)|<\omega_{\alpha,\beta}
+\end{cases}
+, \label{eq:optimal_system_P0_c}
+\end{equation}
+
+
+
+% The existence of solutions for problem \eqref{eq:P} can not be guaranteed in general due to the nonconvexity the $L^0$-pseudonorm, which is the main obstacle to get minimizing sequences converge to a solution of \eqref{eq:P} in $L^2(\om)$. This subject has been discussed in \cite{itokun2014} where the existence of generalized optimal controls was proved. In \cite{wachsmuth19} Wachsmuth et al. showed an example of \eqref{eq:P}, with a linear elliptic PDE, that does not have a solution. However, if the following structural assumption is satisfied, it is possible for \eqref{eq:P} to have a solution. 
+The existence of solutions to problem~\eqref{eq:P} cannot be guaranteed in general due to the nonconvex nature of the $L^0$-pseudonorm. Its lack of convexity is the main obstacle preventing minimizing sequences from converging to a solution of~\eqref{eq:P} in $L^2(\Omega)$. This issue has been analyzed in~\cite{itokun2014}, where the existence of generalized (relaxed) optimal controls was established. Moreover, Wachsmuth et al.~\cite{wachsmuth19} provided an explicit example of problem~\eqref{eq:P} with a linear elliptic PDE that admits no solution. Nevertheless, under additional structural assumptions, it is possible to ensure the existence of solutions to~\eqref{eq:P}. In fact, a solution of the partially convexified problem of \eqref{eq:P}, also known as the $\Gamma$-regularization, becomes a solution for \eqref{eq:P} under Assumption \ref{as:zeromeasure}, see \cite[Corollary Corollary 4.3]{caswach20}.
+
+\begin{assumption}\label{as:zeromeasure}
+Let $\varphi$ the adjoint state associated to $\bar u$.We assume that the set 
+$$\{x\in\om: |\varphi(x)|=\omega_{\alpha,\beta}\}$$
+has zero measure
+\end{assumption}
+
+
+\subsection{Reformulation of the optimality system}
+%We set
+%\[
+%\omega_{\alpha,\beta}:=\sqrt{2\alpha\beta}.
+%\]
+The optimality system derived for a local solution $\bar u$ for \eqref{eq:P} can not be solve directly by the SSN method due to the discontinuous nonlinearities involved.  The main idea in reformulating the system \eqref{eq:optimal_system_P0} consists of removing the jump discontinuity by transforming $\bar u$ into the following control:
+\begin{equation}\label{eq:change_variable}
+    \hat{u}(x)=\bar u(x)-\jmath_{\alpha,\beta}\sign(\bar u(x))
+\end{equation}
+It is clear that $\sign(\bar u(x))= \sign(\hat u(x))$, for almost all $x\in \om$. Hence, we can write $ \bar u(x) =  \hat u(x)+\jmath_{\alpha,\beta}\sign(\hat u(x))$. Moreover, since $\bar u \in U_{ad}$, then we update the control constraints for $\hat u$:
+\begin{equation}
+    \hat u \in  \hat{U}_{ad}=\{ u \in L^2(\om): |\hat u(x)|\leq \delta_{\alpha,\beta}:=\delta-\jmath_{\alpha,\beta}\}
+\end{equation}
+Taking into account the relation \eqref{eq:optimal_system_P_d}, the new variable $\hat u$ satisfies the following system, which results after replacing $\bar u$ with $\hat u$ in \eqref{eq:optimal_system_P0} and is the basis to devise a semismooth Newton method for problem \eqref{eq:P}.
+
+\begin{theorem} Let $\bar u \in L^2(\om)$ satisfying Assumption \ref{as:zeromeasure} and system \eqref{eq:optimal_system_P0} with associated state and adjoint state $\bar y\in H_0^1(\om)$, respectively. Then, there exist $\zeta \in \partial \norm{\cdot}_{L^1(\om)}(\bar u)$ and $\hat u$ defined by \eqref{eq:change_variable} such that the following system holds:
+\begin{subequations}\label{eq:optimal_system_changed_variable}
+	\begin{align}
+&\begin{array}{rlc}
+	A\bar y + a(\cdot, \bar y) & = \hat u + \jmath_{\alpha,\beta}\sign(\hat u), & \text{ in } \om, \\
+      \bar y &= 0, & \text{ on } \ga, 
+\end{array}\label{eq:optimal_system_P0_a}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi + \dfrac{\partial a}{\partial y}(\cdot,\bar y) & = \dfrac{\partial L}{\partial y}(\cdot,\bar y),& \text{ in } \om, \\
+      \varphi &= 0, & \text{ on } \ga ,
+\end{array} \label{eq:optimal_system_P0_b}\\
+&\hat u(x)=\ds
+\begin{cases} 
+-\delta\,\sign(\varphi(x))-\jmath_{\alpha,\beta}\zeta(x), &|\varphi(x)|\ge \alpha \delta,\\
+-\dfrac{\varphi(x)+\omega_{\alpha,\beta}\zeta(x)}{\alpha},&\omega_{\alpha,\beta}\le |\varphi(x)|<\alpha\delta,\\
+0, &|\varphi(x)|<\omega_{\alpha,\beta}.
+\end{cases}
+\label{eq:optimal_system_P_d}
+\end{align}
+\end{subequations}	
+\end{theorem}
+
+
+
+\begin{proof}
+Equations \eqref{eq:optimal_system_P0_a} and  \eqref{eq:optimal_system_P0_b} follows immediately from \eqref{eq:optimal_system_P0}. 
+
+Using \eqref{eq:optimal_system_P0_c} we can define $\zeta$ follows. Taking $\zeta(x) = \sign(\hat u (x))$ for $x$ such that $\varphi(x) \ge \alpha\delta$, we write
+\begin{align}
+0=\bar u(x) + \delta \sign(\varphi(x)) &= \hat u(x) + \jmath_{\alpha,\beta}\sign(\hat u(x)) + \delta \sign(\varphi(x)) \nonumber\\
+& = \hat u(x) + \jmath_{\alpha,\beta} \zeta(x) + \delta \sign(\varphi(x)). \nonumber
+\end{align}
+Thus, we get $ \bar u(x) = -\delta\sign(\varphi(x)) - \jmath_{\alpha,\beta}\zeta(x).$ 
+
+For $x \in \om$ such that $\omega_{\alpha,\beta}\le |\varphi(x)|<\alpha\delta$, we also define $\zeta(x)=\sign(\hat u(x))$. Therefore, from \eqref{eq:optimal_system_P0_c}, we get
+$$\hat u(x) = -\frac{1}{\alpha}\varphi(x)-\jmath_{\alpha,\beta} \sign(\hat u(x))= \frac{-\varphi(x)-\omega_{\alpha,\beta} \zeta(x)}{\alpha}$$
+% \begin{enumerate}
+%     \item If $\varphi(x) \ge \alpha\delta$, then $\bar u(x) = -\delta$.
+%     \item If $\varphi(x) \le -\alpha\delta$, then $\bar u(x) = \delta$.
+%     \item If $\omega_{\alpha,\beta} \le \varphi(x) < \alpha\delta$, then $\bar u(x) = -\frac{\varphi(x)}{\alpha}$, with $-\delta < \bar u(x) \le -\jmath_{\alpha,\beta}$.
+%     \item If $-\alpha\delta < \varphi(x) \le -\omega_{\alpha,\beta}$, then $\bar u(x) = -\frac{\varphi(x)}{\alpha}$, with $\jmath_{\alpha,\beta} \le \bar u(x) < \delta$.
+% \end{enumerate}
+
+% Therefore, on the set $\{x \in \Omega : |\varphi(x)| \ge \omega_{\alpha,\beta}\}$ we have
+% \[
+% \sign(\varphi(x)) = - \sign(\bar u(x)).
+% \]
+
+% Consider first the case $\varphi(x) \ge \alpha\delta$. In this situation, $\bar u(x) = -\delta$ and hence $\sign(\hat u(x)) = \sign(\bar u(x)) = -1$, which yields
+% \[
+% \hat u(x) = \bar u(x)-\jmath_{\alpha, \beta}\sign(\bar u(x))=-\delta + \jmath_{\alpha,\beta}.
+% \]
+% Moreover, since $\sign(\hat u(x))=\sign(\bar u(x))=-1=\zeta(x)$, we have that
+% \[
+% \varphi(x) + \omega_{\alpha,\beta} \sign(\hat u(x))
+% \ge \alpha\delta - \omega_{\alpha,\beta}
+% = \alpha(\delta - \jmath_{\alpha,\beta}) \ge 0,
+% \]
+% and thus 
+% \[
+% \sign\big(\varphi(x) + \omega_{\alpha,\beta} \, \zeta(x)\big) = 1,
+% \]
+% Therefores, in this case we have
+% \[
+% \hat u(x) = (-\delta + \jmath_{\alpha,\beta}) \, \sign\big(\varphi(x) + \omega_{\alpha,\beta} \, \zeta(x)\big).
+% \]
+
+% Similarly, if $\varphi(x) \le -\alpha\delta$, then again we have that $\bar u(x) = \delta > 0$ and
+% \[
+% \hat u(x) = (-\delta + \jmath_{\alpha,\beta}) \, \operatorname{sign}\big(\varphi(x) + \omega_{\alpha,\beta} \, \zeta(x)\big),
+% \]
+% with the signs adjusted accordingly for this case. Finally, we conclude that $\hat u$ satisfies the first equation of \eqref{eq:optimal_system_P_d}.
+
+% For the second case, it is clear that if $\omega_{\alpha, \beta}\le\varphi(x)<\alpha \delta$, then $\sign(\bar u(x))=-1$, and from \eqref{eq:optimal_system_P0} we have that 
+% \[
+% \bar u(x) + \sign(\bar u(x))= -\frac{\varphi(x)}{\alpha}+ \sign(\bar u(x))=-\frac{\varphi(x)+\omega_{\alpha, \beta}\zeta(x)}{\alpha},
+% \]
+% and, in a similar fashion, we have the same identity when $-\alpha \delta<\varphi(x)\le-\omega_{\alpha, \beta}$, so the second equation of \eqref{eq:optimal_system_P_d} holds.
+
+In the remaining case: $|\varphi(x)|<\omega_{\alpha,\beta}$, we have that $\bar u(x)=0$. Therefore, we take $\zeta(x)=0$.  Thus, $\hat u(x)=0+\jmath_{\alpha, \beta}\sign(0)=0$, and  \eqref{eq:optimal_system_P_d} follows with $\zeta$ defined above, which is altogether is given by 
+\begin{equation}\label{eq:zeta_definition}
+\zeta(x)=
+\begin{cases} 
+\sign(\hat u(x)), &|\varphi(x)|\ge \alpha \delta,\\
+\sign(\hat u(x)),&\omega_{\alpha,\beta}\le |\varphi(x)|<\alpha\delta,\\
+0, &|\varphi(x)|<\omega_{\alpha,\beta}.
+\end{cases}
+\end{equation}
+In order to verify that $\zeta$ belongs to $\partial\|\cdot\|_{L^1(\om)}(\bar u)$, first notice that $\sign(\hat u(x))=\sign(\bar u(x))$. Moreover, $\bar u$ satisfies the optimality system \eqref{eq:optimal_system_P0}, then $|\varphi|> \omega_{\alpha,\beta} $ if and only if $\bar u \not =0$. On the other hand, if  $|\varphi| \leq \omega_{\alpha,\beta} $, then $\bar u = 0$. Therefore, $\zeta$ defined by \eqref{eq:zeta_definition} satisfies
+$$
+\zeta(x) \in
+\begin{cases} 
+\{\sign(\bar u(x))\}, & \text{if}\quad \bar u(x) \neq 0,\\
+[-1,1], & \text{if}\quad\bar u(x) = 0.
+\end{cases}
+$$
+which shows that $\zeta \in \partial\|\cdot\|_{L^1(\om)}(\bar u)$.
+\end{proof}
+
+This system resembles the optimality system of an optimal control problem with $L^1$-norm sparsity penalty, see \cite{CasasMateos2024}.  However, notice that the right-hand side of the state equation \eqref{eq:optimal_system_P0_a} involves a nonlinearity acting on $\hat 
+u$, while the adjoint equation \eqref{eq:optimal_system_P0_b} remains unchanged. 
+
+We denote this nonlinearity  by $R:L^2(\om) \to L^2(\om)$, defined by $R(u)=u+\jmath_{\alpha,\beta}\sign(u)$.
+
+Analogous to the $L^1$-norm sparse optimal control c.f. \cite{CasasMateos2024}, we can express the system \eqref{eq:optimal_system_changed_variable} in terms of interval projections. 
+
+\begin{corollary}
+    Let $\hat u, \zeta, \varphi$ satisfying the system \eqref{eq:optimal_system_changed_variable} and $\hat u$ defined as in \eqref{eq:change_variable}. Then,
+    %\begin{enumerate}[i)]    
+    %\item 
+    \begin{equation}\label{eq:proj_u}
+     \hat u(x)=\proj_{[-\delta+\jmath_{\alpha,\beta}, \delta-\jmath_{\alpha, \beta}]}\l(-\frac{1}{\alpha}\l(\varphi(x)+\omega_{\alpha,\beta}\zeta(x)\r)\r).   
+    \end{equation}
+    %\item 
+    \begin{equation}\label{eq:projection_l1}
+        \zeta(x) = \proj_{[-1,1]}\l(-\frac{1}{\omega_{\alpha,\beta}}\varphi(x)\r), \quad \text{and}\quad \hat u(x)=0\, \Longleftrightarrow \, |\varphi|\leq \omega_{\alpha,\beta}.
+    \end{equation}
+    %\end{enumerate}   
+\end{corollary}
+
+
+
+\begin{proof}
+    The result is a direct consequence of formula \eqref{eq:optimal_system_P_d} and similar arguments as in \cite[Theorem 3.2]{casas2012}
+\end{proof}
+
+These formulas allow us to write the optimality system \eqref{eq:optimal_system_changed_variable} in the form $\mathbf{\Phi}(\hat u) =0$. First, we require to express $\varphi$ and $\zeta$ as functions of $\hat u$. Defining $G = T \circ S \circ R$  we can write $\varphi = G(u)$. Proceeding as in \cite{CasasMateos2024}, we use \eqref{eq:proj_u} and \eqref{eq:projection_l1} to define the function
+
+together with the operator $\Psi (u)(x)=\psi(G(u)(x))$. Finally, denoting the identity operator by $I$, we define $\mathbf{\Phi}=I-\Psi$. Therefore, the optimality system \eqref{eq:optimal_system_changed_variable} is equivalent to:
+$$\mathbf{\Phi}(\hat u) =0.$$
+\begin{comment}
+Now, we notice that $\hat u$ satisfies the relation:
+\[
+\hat u = \text{Proj}_{U_{ad}}\l(\text{prox}_{\jmath_{\alpha,\beta}\norm{\cdot}_{L^1(\om)}}\l(-\frac{\varphi}{\alpha}\r)\r)
+\]
+i.e., 
+\begin{equation}\label{eq:prox}
+\hat u = \mathop{\arg\min}\limits_{v\in U_{ad}} \left( \frac{1}{2} \l\lVert v + \frac{\varphi}{\alpha}\r\rVert_{L^2(\om)}^2 + \jmath_{\alpha,\beta} \norm{v}_{L^1(\om)} \right)
+\end{equation}
+Therefore, $\hat{u}$ satisfies the following optimal system:
+\begin{subequations}\label{eq:optmimal_iii}
+	\begin{align}
+&\begin{array}{rlc}
+	A\bar y + a(\cdot, \bar y) & = \hat u + \jmath_{\alpha,\beta}\sign(\hat u)& \text{ in } \om, \\
+      \bar y &= 0 & \text{ on } \ga, 
+\end{array}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi + \frac{\partial a}{\partial y}(\cdot,\bar y) & = \frac{\partial L}{\partial y}(\cdot,\bar y)& \text{ in } \om, \\
+      \varphi &= 0 & \text{ on } \ga ,
+\end{array} \\
+& \int_{\om}\l(\hat u + \frac{1}{\alpha}\varphi + \jmath_{\alpha,\beta}\zeta\r)(u-\hat u)\ge 0, \quad\text{ for all }u\in U_{ad} \label{eq:7b}\\
+& \zeta(x) = 
+\begin{cases} 
+\jmath_{\alpha,\beta}, & \hat u(x)>0,\\
+-\jmath_{\alpha,\beta}, & \hat u(x)<0,\\
+\nu\in \l[-\jmath_{\alpha,\beta}, \jmath_{\alpha,\beta}\r], & \hat u(x)=0,\\
+\end{cases} 
+\end{align}
+\end{subequations}
+Notice that equation \eqref{eq:7b} is equivalent to
+\begin{equation}\label{eq:7b_prime}\tag{$7b'$}
+    \int_{\om}\l(\alpha\hat u + \varphi + \omega_{\alpha,\beta}\zeta\r)(u-\hat u)\ge 0, \quad\text{ for all }u\in U_{ad}
+\end{equation}
+\end{comment}
+\subsection{Regularized system}
+In the previous section, we have reformulated  the optimality system for the problem \eqref{eq:P} as an equivalent equation. However, the right-hand side of \eqref{eq:optimal_system_P0_a} involves a nonsmooth nonlinearity on $\hat u$ does not meet the requirements of the Semismooth Newton Method. In order to handle this difficulty, we consider the Yosida approximation of the $\sign$ function, which fits the requirements of SSN.
+
+For any $t\in\mathbb{R}$ and $\epsilon>0$, we define the following regularization of $\sign(t):$
+\begin{equation}\label{eq:singeps}
+\sign_{\epsilon}(t)=\begin{cases}
+\frac{t}{\epsilon}, & |t|<\epsilon,\\
+\sign(t), & |t|\ge \epsilon,\end{cases}
+\end{equation}
+whose Clarke subdifferential is given by
+\begin{equation} \label{eq:csub_signeps}
+\partial^\circ\sign_{\epsilon}(t)=\begin{cases}
+\{0\}, & |t|>\epsilon,\\
+\Big\{\dfrac{1}{\epsilon}\Big\}, & |t|< \epsilon,\\
+\l[0,\frac{1}{\epsilon}\r], & |t|=\epsilon.
+\end{cases}
+\end{equation}
+%
+Then, we define $R:L^2(\om) \to L^2(\om)$ given by 
+\begin{equation}\label{eq:R_eps} 
+R_\epsilon(u) = u + \jmath_{\alpha,\beta}\sign_\epsilon(u).
+\end{equation}
+Defined this way, $R_\epsilon$ satisfies the growth condition for Nemitski operators to be continuous from $L^2(\om)$ to $L^2(\om)$, see \cite{ambro95}. By defining $G_\epsilon=T \circ S \circ R_\epsilon$ and $\Psi_\epsilon(u) = \psi(G_\epsilon(u))$, we can analogously formulate the regularized function $\mathbf{\Phi}_\epsilon=I- \Psi_\epsilon$. Hence, the regularized equation reads as follows:
+\begin{equation} \label{eq:Phi_eps=0}
+\mathbf{\Phi}_\epsilon(u)=0.
+\end{equation}
+Equivalently, if $\hat u$
+\begin{subequations}\label{eq:reg_system}
+	\begin{align}
+&\begin{array}{rlc}
+	A y + a(\cdot, y) & = \hat u + \jmath_{\alpha,\beta}\sign_\epsilon(\hat u), & \text{ in } \om, \\
+     y &= 0, & \text{ on } \ga, 
+\end{array}\label{eq:optimal_system_P0_a}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi + \dfrac{\partial a}{\partial y}(\cdot, y) & = \dfrac{\partial L}{\partial y}(\cdot, y),& \text{ in } \om, \\
+      \varphi &= 0, & \text{ on } \ga ,
+\end{array} \label{eq:optimal_system_P0_b}\\
+&\hat u(x)=\ds
+\begin{cases} 
+-\delta\,\sign(\varphi(x))-\jmath_{\alpha,\beta}\zeta(x), &|\varphi(x)|\ge \alpha \delta,\\
+-\dfrac{\varphi(x)+\omega_{\alpha,\beta}\zeta(x)}{\alpha},&\omega_{\alpha,\beta}\le |\varphi(x)|<\alpha\delta,\\
+0, &|\varphi(x)|<\omega_{\alpha,\beta}.
+\end{cases}
+\label{eq:optimal_system_P_d}
+\end{align}
+\end{subequations}	
+0
+
+\begin{comment} 
+With this regularization, the system \eqref{eq:optmimal_ii} turns into the following
+\begin{subequations}\label{eq:optmimal_iv}
+	\begin{align}
+&\begin{array}{rlc}
+	A\bar y + a(\cdot, \bar y) & = \hat u + \jmath_{\alpha,\beta}\sign_{\epsilon        }(\hat u)& \text{ in } \om, \\
+      \bar y &= 0 & \text{ on } \ga, 
+\end{array}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi + \frac{\partial a}{\partial y}(\cdot,\bar y) & = \frac{\partial L}{\partial y}(\cdot,\bar y)& \text{ in } \om, \\
+      \varphi &= 0 & \text{ on } \ga ,
+\end{array} \\
+& \int_{\om}(\alpha\hat u + \varphi + \zeta)(u-\hat u)\ge 0, \quad\text{ for all }u\in U_{ad}\\
+&\hat u-\max\l(0,\hat u+c\l(\zeta-\jmath_{\alpha,\beta}\r)\r)-\min\l(0,\hat u+c\l(\zeta+\jmath_{\alpha,\beta}\r)\r)=0
+\end{align}
+\end{subequations}
+\end{comment}
+\subsection{Pass to the limit $\epsilon \to 0$} Observe that, for an arbitrary fixed $t\in\reals$, $\lim_{\epsilon \to 0} \sign_\epsilon(t)=\sign(t)$.
+
+
+\begin{lemma}
+Let $\sign_\epsilon : L^2(\om) \to L^2(\om)$ be the Nemitski operator associated with the real function \eqref{eq:singeps}. For every $u\in L^2(\om)$, it holds that
+\begin{equation}
+    \|\sign_\epsilon(u)-\sign(u)\|_{L^2(\om)} \to 0 \quad \text{as} \quad \epsilon\to 0.
+\end{equation}
+\end{lemma}
+\begin{proof}
+By definition, $\sign_\epsilon(u)(x) = \sign(u)(x)$ whenever $|u(x)| > \varepsilon$ or $u(x)=0$. 
+Hence, the error vanishes outside the set $\{ 0<|u|\leq \varepsilon \}$, where we have
+\[
+\sign_{\epsilon}(u)(x) - \sign(u)(x)
+= \dfrac{1}{\varepsilon}u(x) - \sign(u(x))
+= \Big( \dfrac{1}{\varepsilon}|u(x)| - 1 \Big)\sign(u(x)).
+\]
+Integrating the square of the last relation, we find that 
+\[
+\|\sign_\epsilon(u) - \sign(u)\|_{L^2(\om)}^2
+\leq\int_{\{0<|u|\leq \varepsilon\}} \Big( 1 - \tfrac{|u(x)|}{\varepsilon} \Big)^2 \, dx\leq |\{x\in\om:0<|u(x)|\leq \varepsilon\}|,
+\]
+where, the limit $\epsilon\to 0$ gives the result.
+\end{proof}
+\begin{theorem} Let $\{\epsilon_k\}_k$ be a sequence of positive real numbers such that $\epsilon_k\to0$ as $k\to 0$ and let ${(y_{\epsilon_k},\hat u_{\epsilon_k},\varphi_{\epsilon_k})}_k$ be a sequence in $H_0^1(\om)\times L^2(\om)\times H_0^1(\om)$ that satisfies the regularized system:
+
+\end{theorem}
+\section{Semi-smooth Newton method} 
+
+We recall the definition of a semismooth function bewteen two Banach spaces $X, Y$. A function $f:U\subset X\to Y$ with $U$ an open subset of $X$ is called $\partial f$ semismooth at $X\in $ if there exists a set-valued map $\partial f: U\to \mathcal{L}(X, Y)$ such that $f$ is continuous near $x$ and
+\[
+\sup_{M\in\partial f(x+z)}\norm{f(x+z)-f(x)-Mz}_{Y}=o(\norm{z}_{X}),
+\]
+ as $\norm{z}_{X}\to 0$. For solving the problem of finding $x\in F$ such that $f(x)=0$, the following algorithm, called \textit{semismooth Newton algorithm} is proposed:
+ 
+\begin{algorithm}
+\caption{Semismooth Newton Algorithm}\label{alg:SSN}
+\begin{algorithmic}[1]
+\State Initialize $x^0 \in U$ and set $k := 0$
+\While{stopping criterion is not satisfied}
+    \State Choose an element $M_k\in \partial f(x^k)$.
+    \State Solve $M_ks^k = -f(x^k)$ 
+    \State Set $x^{k+1} := x^k + s^k$
+    \State $k := k + 1$
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+ In order to solve the equation \eqref{eq:Phi_eps=0}, Algorithm 1 can be applied. However, we first need to ensure that $\mathbf{\Phi}_\varepsilon$ is semismooth. The following Lemma contains a proof of this fact.
+
+\begin{lemma}\label{lemma2} 
+The function $\mathbf{\Phi}_\varepsilon: L^2(\om) \to L^2(\om)$ defined by
+$$ \mathbf{\Phi}_\varepsilon = I - \Psi_{G_\varepsilon}$$
+is $\partial \mathbf{\Phi}_{\epsilon}$-semismooth for every $u\in L^2(\om)$, with $\partial \mathbf{\Phi}_\varepsilon$ is given by
+\begin{equation}
+\partial \mathbf{\Phi}_\varepsilon (u) =\{I-N: N\in \partial \Psi_{G_\varepsilon}(u) \},
+\end{equation}
+and if $N\in \partial_{G_{\epsilon}}(u)$, then $N$ is a linear operator from $L^2(\om)$ to itself such that, for any $v\in L^2(\om)$, there exist two measurable functions $h, \tilde{h}$ such that $h(x)\in \partial^{\circ}\psi(G_{\epsilon}(u)(x))$, $\tilde{h}(x)\in \partial^{\circ}\sign_{\epsilon}(u(x))$, and
+\begin{equation}\label{eq:newton_derivate}
+Nv=h\cdot G'(R_{\epsilon}(u))(v+\jmath_{\alpha,\beta}\tilde{h}\cdot v)
+\end{equation}
+
+\end{lemma}
+\begin{proof}
+The Clarke subdifferentiability of $\psi$, defined in \eqref{eq:psi}, was studied in \cite{CasasMateos2024} for different interval values. The corresponding derivative is given by:
+    \[
+    \partial^{\circ}\psi(t)=\begin{cases}
+        \{0\}, & t\in (-\infty, -\omega_{\alpha,\beta}-\alpha(\delta-\jmath_{\alpha,\beta}))\cup (-\omega_{\alpha,\beta}, \omega_{\alpha,\beta})\cup (\omega_{\alpha,\beta}-\alpha(-\delta+\jmath_{\alpha,\beta}),+\infty),\\
+        \l\{-\frac{1}{\alpha}\r\}, & t \in (-\omega_{\alpha,\beta}-\alpha(\delta-\jmath_{\alpha,\beta}),-\omega_{\alpha,\beta})\cup (\omega_{\alpha,\beta}, \omega_{\alpha,\beta}-\alpha(-\delta+\jmath_{\alpha,\beta})),\\
+        \l[-\frac{1}{\alpha},0\r], & t\in \l\{-\omega_{\alpha,\beta}-\alpha(\delta-\jmath_{\alpha,\beta}), -\omega_{\alpha,\beta}, \omega_{\alpha,\beta}, \omega_{\alpha,\beta}-\alpha(-\delta+\jmath_{\alpha,\beta})\r\}.
+    \end{cases}
+    \]
+    By \cite[Lemma 2.4]{CasasMateos2024} we see that $G=T\circ S$ is Lipschitz continuous. In our case, this mapping is further composed with $R_\epsilon$ defined in \eqref{eq:R_eps}. Since $R_{\epsilon}$ is also Lipschitz continuous, we conclude that $G_{\epsilon}$ is Lipschitz. The result follows from the arguments of \cite[Lemma 3.3]{CasasMateos2024}. Finally, using the chain rule for semismooth functions, see for example \cite[Theorem 14.4]{valk}, \eqref{eq:newton_derivate} follows immediately.
+\end{proof}
+
+In order to prove the convergence of the Algorithm \ref{alg:SSN}, we consider two cases: when $a(x,y)$ is linear respect to the second variable, and when it is not, but still satisfies all the assumptions in Assumption 1. Before this, we point out that, for simplicity, functions $h$ and $\tilde{h}$ in Lemma \ref{lemma2} can be taken as
+\[
+h(t)=-\frac{1}{\alpha}\large{\mathlarger{\chi}}_{J_1\cup J_2}(t), \qquad \tilde{h}(t)=\frac{1}{\epsilon}\mathlarger{\chi}_{J_3}(t),
+\]
+where
+\[
+J_1 = \{x\in \om: -\omega_{\alpha,\beta}-\alpha(\delta-\jmath_{\alpha,\beta})\le t \le -\omega_{\alpha,\beta}\},
+\]
+\[
+J_2 = \{x\in \om: \omega_{\alpha,\beta}\le t\le  \omega_{\alpha,\beta}-\alpha(-\delta+\jmath_{\alpha,\beta})\},
+\]
+\[
+J_3 = \{x\in \om: |t|\le \epsilon\}.
+\]
+\begin{theorem}
+    Let $u^0$ a sufficient close point of the solution of \eqref{eq:Phi_eps=0}. If $a(x,y)$ is linear respect to the second variable, then, the iterations $(u_k)_{k\in\mathbb{N}}$ generated through Algorithm 1 converges superlinearly to the solution $\hat{u}$ of \eqref{eq:Phi_eps=0}. 
+\end{theorem}
+
+\begin{proof}
+    The proof is similar to \cite[Theorema 4.3]{stadler2006}. Picking up any element $M$ of $\partial \mathbf{\Phi}_{\varepsilon}(u)$ for any $u$ in $L^2(\om)$, and using the explicit definitions of $h$ and $\tilde{h}$ written above, we have thaks to the linearity of the operator $G$ that for any $v\in L^2(\om)$:
+    \begin{align*}
+        (Mv,v)_{L^2(\om)}&=(v,v)_{L^2(\om)}+\frac{1}{\alpha}(G(R_{\varepsilon}(u))(v+\jmath_{\alpha,\beta}\tilde{h}\cdot v),v)_{L^2(J_1\cup J_2)}\\
+        &= \frac{1}{\alpha}(G(R_{\varepsilon}(u))v,v)_{L^2(J_1\cup J_2)}+\frac{\jmath_{\alpha,\beta}}{\alpha\epsilon}(G(R_{\varepsilon}(u))v,v)_{L^2(J_3\cap (J_1\cup J_2))}\\
+        &\quad+(v,v)_{L^2(\om)},
+    \end{align*}
+    Therefore, $M$ defines a coercive and continuous form in $L^2(\om)\times L^2(\om)$. Using the Lax Milgram Theorem, we conclude that $M$ is invertible with bounded inverse, so the conclusion follows from \cite[Theorem 3.13]{ulbrich2002}
+\end{proof}
+
+
+
+\section{Numerical Tests}
+
+\subsection{Implementation aspects}
+In this section, we discuss in detail the implementation of the SSN method proposed in previous sections. Recalling the formula \eqref{eq:optimal_system_P0_b}\, we can write
+\begin{equation}
+    \alpha\hat u + \varphi +\mu =0, 
+\end{equation}
+where $\mu \in L^2(\om)$ is the function given by $\mu = \omega_{\alpha,\beta} \zeta + \lambda_r-\lambda_l$ and $\lambda_r$ and $\lambda_l$ are defined by 
+\begin{align}
+    &\lambda_r = -\min(0,\alpha \hat u  + \varphi  + \omega_{\alpha,\beta}\zeta), \\
+    &\lambda_\ell =\max(0,\alpha \hat u  + \varphi  + \omega_{\alpha,\beta}\zeta).
+\end{align}
+Using $\lambda_\ell$ and $\lambda_r$ introduced above, the regularized system obtained from \eqref{eq:optimal_system_changed_variable} can be written as:
+\begin{subequations}\label{eq:KKT-like}
+	\begin{align}
+&\begin{array}{rlc}\label{eq:KKT_1}
+	A\hat y + a(\cdot, \hat y) & = \hat u + \jmath_{\alpha,\beta}\sign_\epsilon(\hat u), & \text{ in } \om, \\
+      \hat y &= 0, & \text{ on } \ga,  
+\end{array}\\
+%
+&\begin{array}{rlc}\label{eq:KKT_2}
+	A^*\varphi + \dfrac{\partial a}{\partial y}(\cdot,\bar y) & = \dfrac{\partial L}{\partial y}(\cdot,\hat y),& \text{ in } \om, \\
+      \varphi &= 0, & \text{ on } \ga ,
+\end{array} \\
+&\alpha \hat u +\varphi + \mu =0, \quad\text{a.e\,\, in}\quad \om \label{eq:KKT_3}\\
+&\begin{array}{ll}\label{eq:KKT_4}
+ \hat u &- \max(0, \hat u  +c(\mu-\omega_{\alpha,\beta}) )- \min(0, \hat u  +c(\mu+\omega_{\alpha,\beta}) )\\
+ &+\max(0,(\hat u-\delta)+c (\mu-\omega_{\alpha,\beta})) + \min(0,(\hat u+\delta)+ c(\mu+\omega_{\alpha,\beta}))
+\end{array}
+\end{align}
+\end{subequations}	
+\subsection{Comparison with other methods}
+\subsection{Parameter variation tests}
+
+
+\bibliographystyle{plain} % e.g., plain, alpha, abbrv, ieee
+%\bibliography{/Users/pm/Library/CloudStorage/Dropbox/investigacion/bib_com/litbank.bib} % Use the name of your .bib file here
+\bibliography{litbank}
+\end{document}

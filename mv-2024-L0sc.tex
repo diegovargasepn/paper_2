@@ -1,0 +1,892 @@
+\documentclass[11pt,a4paper]{amsart}
+\usepackage{geometry, empheq}
+\usepackage[english]{babel}
+%\pagestyle{myheadings}
+%\textheight25.3cm
+%\oddsidemargin 1cm
+%\evensidemargin 1cm
+\usepackage{amsmath}
+%\usepackage{showkeys}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{xcolor,graphicx}
+\usepackage{color}
+\usepackage{varioref}
+\usepackage{nicefrac}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[normalem]{ulem}
+\usepackage{multirow}
+\usepackage{enumerate}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{siunitx}
+%\usepackage{hyperref}
+%\usepackage{tikz}
+%\usepackage{pgfplots} 
+%\usepackage{pgfgantt}
+%\usepackage{pdflscape}
+%\usepgfplotslibrary{external} 
+%\tikzexternalize
+%\pgfplotsset{compat=newest} 
+%\pgfplotsset{plot coordinates/math parser=false}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{comment}
+\usepackage{caption}
+\captionsetup{skip=5pt}
+%\usepackage{url}
+
+%\selectcolormodel{gray}
+\def\b#1{{\mbox{\boldmath $#1$}}}
+\def\lewz#1{\leqno(#1)}
+%\usepackage{booktabs}
+\newcommand{\ak}{\hspace{20pt}}
+\newcommand{\bak}{\parindent=0pt}
+\newcommand{\sm}{\smallskip}
+%\newcommand{\smallskip}{\medskip}
+\newcommand{\bs}{\bigskip}
+\newcommand{\arrow}{\rightarrow}
+\newcommand{\ds}{\displaystyle}
+\newcommand{\kr}{\hspace{-0.2cm}{\bf.~}}
+\newcommand{\kw}{\rule{2mm}{2mm}}
+\newcommand{\ged}{\hfill\kw}
+\newcommand{\pf}{\b{Proof.} \ }
+\newcommand{\ssn}{({\bf SSN}) }
+\renewcommand{\div}{\text{div\,}}
+\newtheorem{example}{\textbf{Example}}
+%\newcommand{\norm}[1]{{\|  #1\|}}
+\renewcommand{\l}{\left}
+\renewcommand{\r}{\right}
+\newcommand{\om}{\Omega}
+\newcommand{\ga}{\Gamma}
+\newcommand{\fsparse}{\Upsilon}
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\sign}{\mathrm{sign}}
+\newcommand{\warrow}{\rightharpoonup}
+\def\thesection{\arabic{section}}
+\def\thesubsection{\arabic{section}.\arabic{subsection}}
+\def\thefigure{\arabic{figure}\normalfont}
+\def\thetable{\arabic{table}\normalfont}
+\setcounter{table}{0}
+\newcommand{\nota}[1]{ \colorbox{red}{\textcolor{white}{\tiny{#1}}}}
+\DeclareMathOperator{\argmin}{argmin}
+%\newenvironment{proof}[1][Proof]{\b{Proof.}{\hfill\kw}}
+\renewenvironment{proof}{{Proof.}}{\hfill\kw}
+
+%\font\nowa = eufm5 scaled \magstep 3
+\font\tenpoint=cmr10
+\font\ninepoint=cmr9
+\newcounter{theassumption}
+\setcounter{theassumption}{0}
+\newtheorem{assumption}[theassumption]{{Assumption}}
+\newtheorem{proposition}{{Proposition}}
+\newtheorem{definition}{{Definition}}
+\newtheorem{lemma}{{Lemma}}
+\newtheorem{remark}{{Remark}}
+\newtheorem{corollary}{{Corollary}}
+\newtheorem{theorem}{{Theorem}}
+\newcommand{\cor}{\color{red}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\subtag}[1]{\tag{\theparentequation#1}}
+%\addbibresource{biblio.bib}
+
+\begin{document}
+	\title[Sparse state-constrained optimal control]{ Numerical solution of mixed contol-state constrained elliptic optimal control problems with sparsity}
+	%\title{Numerical solution of nonconvex PDE--constrained optimization problems via DC programing}
+	
+	\author{Pedro Merino$^\ddag$ and Diego Vargas$^\ddag$}
+	%\address{}
+	\address{$^\ddag$Research Center of Mathematical Modeling (MODEMAT) and Escuela Polit\'ecnica Nacional, Quito, Ecuador}
+	\keywords{}
+	\subjclass[2010]{90C26, 90C46, 49J20, 49K20}
+	\thanks{$^*$This research has been partially supported by the  Ph.D program on Applied Mathematics Escuela Polit\'ecnica Nacional, Quito--Ecuador.}
+	
+	\smallskip
+\begin{abstract}
+In this paper, we address optimal control problems with mixed control-state constraints with sparsity induced by the $L^0$-pseudonorm. Necessary optimality conditions are obtained via partial convexification of the cost-function and a primal-dual algorithm is proposed for the numerical solution. Furthermore, we discuss the application of mixed control-state constraints to the state-constrained case by means of a Lavrentiev regularization.
+\end{abstract}
+	
+\maketitle 
+
+\section{Introduction}
+
+ This paper focuses on solving elliptic PDE-constrained optimal control problems with mixed control-state constraints and sparsity-promoting $L^0$-pseudonorm implemented in the cost function.  Sparsity-inducing regularizations, such as the $L^0$-pseudonorm, have gained relevance due to their ability to yield simpler, interpretable solutions. In fact, the $L^0$-pseudonorm minimizes the actual support of the controlling variable, resulting in the localized action of the optimal control within the domain instead of acting in the whole domain, which is economically efficient.   
+On the other hand, imposing mixed control-state constraints is practically relevant as they capture coupled physical requirements, such as total energy use, average temperature, or joint performance criteria that neither control nor state variables alone can describe. Moreover, it is known that the Lavrentiev regularization of \emph{pointwise state constraints} raises a mixed control-state constrained formulation as a regularization of pointwise state constraints, see \cite{meyer06} . 
+
+The combination of sparse controls induced by  $L^0$-pseudonorm with  mixed control-constraints involve additional theoretical and numerical difficulties since the problem is nonsmooth and noconvex and mixed control-state constraints require additional numerical techniques. 
+
+In particular, the theory for optimal control problems involving $L^0$-pseudonorm has been developed through many papers. In \cite{itokun14}, Ito and Kunisch introduced a Pontryagin's principle that characterizes solutions for semilinear elliptic optimal control problems involving $L^0$-pseudonorm penalty in its cost function. Moreover, uniqueness was proved under a structural assumption on the measure of a certain level set of the adjoint state. As shown in the counterexample by Wachsmuth in \cite{}, this problem may not have a solution without the latter assumption. 
+Second-order conditions were established by Casas and Wachsmuth D. in \cite{} for semilinear elliptic pde's by relying on the partial convexification of the problem.
+
+{\color{red} Incorporar discusión sobre, las restricciones mixtas con referencias, sparstity con $L0$ y referencias, solucion numerica y referencias}
+
+We can find studies on primal-dual methods for mixed constraints on \cite{hint07} applied to elliptic control problems. 
+
+% Pointwise state constraints appear in many practical applications where the state must remain within certain bounds required by safety requirements or technological needs. However, it is also known that this kind of constraints often lead to low regularity of the associated Lagrange multipliers that are characterized by regular Borel measures. This lack of regularity impose additional challenges in the derivation of optimality conditions and the design of numerical algorithms.
+
+% Regarding the numerical solution of this problem, our approach consist on the Difference-of-Convex Algorithm (DCA). DCA has been succesfully applied fo solving nonconvex problems provided there exist such representation of the objective function. To address the inherent nonconvexity and nonsmoothness of this problem, we propose a regularization of the $L^0$-pseudonorm and the pointwise state constraints that are suitable fo the application of a Difference-of-Convex functions Algorithm (DCA). 
+
+
+ %but in most cases, in a separate way. These two paradigms have important consequences in both theoretical and practical considerations. From a practical point of view, problems with penalty in $L^1$ norm are used for cases where the placement of technological equipment implementing a control in an optimal way is of paramount relevance. 
+
+%Other examples are related to inverse problems in biomedical or seismic imaging (see \cite{vogel}), which have been studied in recent years. In these problems, it is common to use optimal control problems governed by PDE's, whose cost functions are non-smooth. The use of a $L^1$ norm within the cost function has proven to be a strategy that leads to better results for data recovery from noise-affected measurements, compared to problems with regular costs \cite{stadler}. Another use of the problems with norm penalties $L^1$, as has been mentioned previously, is to find an optimal way to place control artifacts. In this case, the control's values vanish in a region of its domain, placing them in localized portions of the domain. Although this could be done heuristically, the fact is that usually the physical model that described by a PDE system is highly complex or there is no prior experience of these locations. $L^1$ norm penalties in cost also appear in certain energy efficiency models, for example, the total fuel consumption by cars can be modeled through the cost involving a $L^1$ norm penalty , see \cite{vossen}.\\
+%
+\begin{comment}
+The sparsity presented in an optimal control solution suggest us to study the space of functions of bounded variation over the optimal domain. In fact, it is a well-known fact that if the optimal control is restricted to this space, and we penalize the cost function with the seminorm in this one, then the structure of the optimal control will be piecewise constant, see for example, \cite{casasbv, casaskruse, clason}. The use of $L^1$ penalization combined with the seminorm in space of functions of bounded variation produces that the optimal control will be piecewise equal to zero, see \cite{casasbv}. Moreover, it seems that the numerical structure of the optimal control problems involved with BV seminorms are not too complex, see form example \cite{casasclason, casaskruse}. Several practical problems which uses this seminorm are related to mathematical image analysis, see for example \cite{bredis, rudin, ring}.\\    
+\end{comment}
+%
+%A less studied problems are those with non-convex penalties using $L^q$ quasinorms, with $q\in [0,1)$. It is known that the appearance of $L^q$ quasinorm in the cost function of the optimal control problem induces sparsity over the optimal control solution, see for example \cite{merino, ito-kunish}. As in the case of $L^1$ penalties, we have a lot of practical and theoretical applications, such as image restoration \cite{hinttv}, compressed sensing \cite{donoho} and optimal control problems \cite{casas}. However,  the lack of convexity of produced by including the $L^q$ quasinorm makes the existence of solution challenging since the direct method can not be applied.
+
+%Another type of interesting and useful optimal control problems are those which present restrictions over the state, for example problems involved with heat phenomena. In these ones, it might be required that temperature must stay between some practical ranges determined, for example, by point-wise constraints restrictions to the state. Other models that demands state constraints in their formulation are those which are involved with elasticity theory, flux theory, finances and over all problems which demands that the state must be in a specific set \cite{hintkun}. However, when we impose point-wise state constrains in some optimal control problems with convex cost function, it was shown that the Lagrange multipliers that appears in the optimal systems have poor regularity. In fact, Casas \cite{casas} proved that if we consider the problem
+
+
+
+\section{Problem formulation}
+Let $\om \in \reals^{n}$ with $n=2, 3$ and $\om\subset \reals^{n}$ with Lipschitz boundary $\Gamma$. Define the following differential operator:
+\[
+    (Ay)(x) = - \sum_{i,j=1}^n \frac{\partial}{\partial x_i}	\l( a_{ij}(x)\frac{\partial y(x)} {\partial x_j }\r) +c_0 y(x),
+\]
+with coefficients  $a_{ij}$  in $L^\infty(\om)$ for all $i,j\in \{1,\cdots,n\}$ satisfying
+\begin{equation}\label{pdecondition}
+    \sum_{i,j=1}^{n}a_{ij}(x)\xi_{i}\xi_{j} \ge \alpha\norm{\xi}^2,
+\end{equation}
+for all $\xi\in \reals^n$ and $c_0 \geq 0$  ($c_0 \not =0$) in  $L^\infty(\om)$ . We will denote the adjoint of $A$ by $A^*$. Moreover, associated with the elliptic operator $A$, we define the bilinear form 
+$$ a(y,v):= \int_{\om} \sum_{i,j=1}^n a_{ij}(x)\frac{\partial y(x)} {\partial x_j }\frac{\partial v(x)} {\partial x_i }  +c_0 y(x)v(x) \, dx, $$  which we use to define the associated variational problem problem:
+%
+\begin{equation}\label{eq:elliptic}
+	a(y,v) = (u,v)_{L^2(\om)}, \quad \forall v\in H_0^{1}(\om).
+\end{equation}
+%
+%
+The elliptic problem \eqref{eq:elliptic} has a unique solution in $H^1_0(\om)\cap C^{0,\nu}(\bar\om)$ for some $\nu \in (0,1)$, see \cite[Theorem 2.1]{Casas_2020}. Therefore, we define $S:L^2(\om ) \arrow H_0^1(\om)  \cap C^{0,\nu}(\bar\om)$ corresponding to the linear and continuous operator which assigns to every $u \in L^2(\om)$ its associated solution $y=y(u) \in H_0^1(\om)\cap C^{0,\nu}(\bar\om)$ satisfying \eqref{eq:elliptic}. 
+ Furthermore, the solution $y(u)\in H_0^1(\om)\cap C^{0,\nu}(\bar\om)$  satisfies
+\begin{equation}
+ \|y(u)\|_{H_0^1(\om)}  +    \|y(u)\|_{C^{0,\nu}(\bar\om)} \leq c \|w\|_{L^2(\om)},
+\end{equation}
+for some constant $c>0$ independent of $y$, see \cite{Casas_2020}.
+
+
+
+Now, we introduce the sparsity penalizer. Following \cite{}, for each $u\in L^2(\om)$  we define its $L^0$ pseudonorm as
+\[
+\norm{u}_{0}:=\mbox{meas}\{x\in \om: u(x)\ne 0\}, \quad \text{equivalently} \quad \norm{u}_{0}= \int_\om |u(x)|^0 \,dx ,
+\]
+where 
+$$
+|t|^0:=\begin{cases}    
+    1,&t\ne 0\\
+    0,&t=0.\\
+\end{cases}
+$$
+We formulate the following  mixed control-state constrained problem:
+\begin{equation}\label{eq:P_delta_lambda}\tag{$P^0_{\lambda}$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; J_0(y,u)=\frac{1}{2}\norm{y-y_d}^2_{L^2(\om)}+\frac{\alpha}{2}\norm{u}^2_{L^2(\om)}+\beta \norm{u}_0\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+     Ay(x)&=u(x) + f(x), &\mbox{in } \om,\\
+        y(x)&=0,  &\mbox{over } \Gamma,\\    
+         |\lambda u(x)+y(x)|&\leq \delta, &\mbox{in almost all }x\in \Omega.
+     \end{array}
+    \end{cases}
+\end{equation}
+Let us note the nonconvexity of our problem by the presence of the term $\norm{u}_0$ in the cost function. In fact, this problem might not have a solution. For instance, D. Wachsmutt  in \cite{wachsmuth19} showed an unsolvable case for this problem with control constraints. 
+
+To avoid this issue, a usual procedure is to consider a $\Gamma$-regularization of the problem, which is given by a convexification of the cost function. The biconjugate of the function $\dfrac{\alpha}{2} t^2 + |t|^0$,  is given by the convex function:
+\begin{equation} \label{eq:bic_l0}
+  g(t) = 
+\begin{cases} 
+    \frac{\alpha t^2}{2} + \beta & \text{for } |t| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+    \sqrt{2\alpha \beta} |t| & \text{for } |t| < \sqrt{\frac{2\beta}{\alpha}}.
+\end{cases} 
+\end{equation}
+see Ito and Kunisch \cite[Remark 2.10]{itokun08}.
+Using the function \eqref{eq:bic_l0} we define the convex penalizer in $L^2(\om)$, given by $j(u)=\int_\om g(u) dx$. Next, we consider the associated convex optimal control problem
+\begin{equation}\label{eq:P_convex_lambda}\tag{$P_{\lambda}$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; J(y,u)=\frac{1}{2}\norm{y-y_d}^2_{L^2(\om)}+j(u)\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+     Ay(x)&=u(x) + f(x), &\mbox{in } \om,\\
+        y(x)&=0,  &\mbox{over } \Gamma,\\    
+         |\lambda u(x)+y(x)|&\leq \delta, &\mbox{in almost all }x\in \Omega.
+     \end{array}
+    \end{cases}
+\end{equation}
+
+Now, \eqref{eq:P_convex_lambda} is a convex optimal control problem but not strictly convex. Moreover, by noticing that \textcolor{red}{for any $t\in \mathbb{R}$ such that $|t|\ge \sqrt{\frac{2\beta}{\alpha}}$ we have that $\frac{\alpha}{2}|t|^2\le \frac{\alpha}{2}|t|^2+\beta = g(t)$, and if $|t|<\sqrt{\frac{2\beta}{\alpha}}$, we have
+\[
+\begin{aligned}
+|t|<\sqrt{\frac{2\beta}{\alpha}}&\Rightarrow |t|^2<\sqrt{\frac{2\beta}{\alpha}}|t|\\
+&\Rightarrow \frac{\alpha}{2}|t|^2<\frac{1}{2}\sqrt{2\alpha\beta}<\sqrt{2\alpha\beta}|t|=g(t), 
+\end{aligned}
+\]
+we conclude that 
+\begin{equation}\label{eq:relation_j_norm}
+    \frac{\alpha}{2}\norm{u}^2_{L^2(\om)}\le j(u),\quad \text{for all } u\in L^2(\om)
+\end{equation}
+}
+\begin{comment}
+\begin{equation}\label{eq:boundedness_j}
+\dfrac{\alpha}{2} \|u\|_{L^2(\om)} = \int_{|u|\geq \sqrt{\frac{2\beta}{\alpha}}} \dfrac{\alpha}{2} u(x)^2 dx+ \int_{|u|< \sqrt{\frac{2\beta}{\alpha}}} \dfrac{\alpha}{2} u(x)^2 dx \le c j(u),
+\end{equation}
+with constant $c=\max\{1, \frac12 \sqrt{\frac{2\beta}{\alpha}}\}$,
+\end{comment}
+ and thus, the cost function in \eqref{eq:P_convex_lambda} is bounded and therefore it produces weak limits in $L^2(\om)$ of minimizing functions. Thus, the existence of solutions results from the direct method. However, uniqueness is not guaranteed in absence of strict convexity of $J$. 
+%%%
+\subsection{Necessary optimality conditions for \eqref{eq:P_convex_lambda}} 
+The control-to-state operator $G: L^2(\om) \to H_0^1(\om)$ is defined by assigning to each $u \in L^2(\om)$ the corresponding solution $y \in H_0^1(\om)$ and the denoting the compact embedding from $H_0^1(\om)$ to  $L^2(\om)$ by $\iota$. Thus, we can consider the control-to-state operator $S=\iota\circ G: L^2(\om) \to L^2(\om) $. Next, as usual for mixed control-state constraints, for $\lambda > 0$ we redefine the control variable as $v = \lambda u + y = \lambda u + Su = (\lambda I + S)u$. The so called mixing operator $\lambda I + S$ is shown to be a Fredholm operator with a discrete set of eigenvalues that accumulate at zero.  We denote $B_\lambda=(\lambda I + S)^{-1}$ and its adjoint by $B_\lambda^{*}$.
+
+Then, we define the admissible control set 
+\begin{equation}\label{eq:U_ad}
+\mathcal{U}_{ad}=\{u: |\lambda u(x) + (S u)(x)|\leq \delta, \, a.e. \, \om \} = \{u: |(\lambda I + S)u|\leq \delta\}.
+\end{equation}
+Thanks to the operator $S$  and the admissible control set $\mathcal{U}_{ad}$, we can formulate the reduced problem:
+\begin{equation}
+\min_{u\in L^2(\om)} J(Su,u) = \frac{1}{2}\norm{Su-y_d}^2_{L^2(\om)}+j(u) + I_{\mathcal{U}_{ad}}(u).
+\end{equation}
+
+By changing the variable $u = B_\lambda v$ in the above problem, we obtain the equivalent (reduced) problem:
+\begin{equation}\label{convex_lav_v}
+    \displaystyle\min_{v\in L^2(\om)} \; \frac{1}{2}\norm{SB_{\lambda}v-y_d}^2_{L^2(\om)}+ j(B_\lambda v) + I_{\mathcal{V}_{ad}}(v),
+\end{equation}
+where $\mathcal{V}_{ad}:=\{v\in L^2(\Omega): -\delta \le v(x)\le \delta \; \mbox{for almost all } x\in \Omega\}$. 
+\begin{theorem}\label{t:os1}
+Let $\bar u_\lambda \in \mathcal{U}_{ad}$ be an optimal control for \eqref{eq:P_convex_lambda}, there exist associated state $\bar y_\lambda$ and $\varphi$ in $H_0^1(\om)$ and multipliers $\zeta_\lambda$ and $\mu_\lambda$  in $L^2(\om)$, such that satisfies the following optimality system:
+\begin{subequations}\label{eq:optimal_system_regular}
+\begin{align}
+&\begin{array}{rlr}
+	A\bar y_\lambda & = \bar u_\lambda +f & \text{ in } \om, \\
+      \bar y_\lambda &= 0 & \text{ on } \ga, 
+\end{array}\label{eq:os_reg_state}\\
+%
+&\,\begin{array}{rlr}
+	A^*\varphi_\lambda & = \bar y_\lambda -y_d + \mu_b-\mu_a& \text{ in } \om, \\
+      \varphi_\lambda &= 0 & \text{ on } \ga ,
+\end{array}\label{eq:os_reg_adj}\\
+&\mu_a\ge 0, \,\mu_b\ge 0, \label{eq:os_reg_nnmu}\\
+&\mu_a(\lambda \bar{u}_\lambda+\bar{y}_\lambda+\delta)=\mu_b(\lambda \bar{u}_\lambda+\bar{y}_\lambda-\delta)=0, \label{eq:os_reg_compl}\\
+& \varphi_\lambda  +\zeta +\lambda(\mu_b-\mu_a) =0, \label{eq:os_reg_grad} \\
+&\zeta(x) = 
+\begin{cases} 
+\{\alpha \bar u_\lambda(x) \}, & \text{if } |\bar u_\lambda(x)| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+\{\sqrt{2 \alpha \beta} \, \sign(\bar u_\lambda(x))\}, & \text{if } 0<|\bar u_\lambda(x)| < \sqrt{\frac{2\beta}{\alpha}}, \\
+[-\sqrt{2 \alpha \beta},\sqrt{2 \alpha \beta}], & \text{if } \bar u_\lambda(x)=0.
+\end{cases} \label{eq:os_reg_subgr}
+%
+\end{align}
+\end{subequations}
+%
+\end{theorem}
+\begin{proof} Let us consider problem \eqref{convex_lav_v}.	It is clear that if $\bar v $ is a solution for \eqref{convex_lav_v}, then $\bar u_\lambda=B_\lambda \bar v$ is an optimal control for \eqref{eq:P_convex_lambda}, with associated state $\bar y_\lambda = S B_\lambda \bar v = S \bar u_\lambda$ satisfying \eqref{eq:os_reg_state}. 
+
+Let us denote $F(u) = \frac{1}{2}\norm{Su-y_d}^2_{L^2(\om)}$. By composition, $F\circ B_\lambda$ is differentiable from $L^2(\om)$ to $L^2(\om)$, and its derivative is given by $(F\circ B_\lambda)t'(\bar v) = B_\lambda^*S^*(SB_\lambda \bar v -y_d)$. 
+
+In view of the convexity of $F$ and $j(B_\lambda \cdot)$  we obtain optimality conditions in a standard fashion for \eqref{convex_lav_v}  by applying the Fermat's principle cf. \cite{Bauschke_2017}:
+\begin{equation}\label{eq:Fermat} 0 \in (F\circ B_\lambda)'(\bar v) + \beta B_\lambda^*\partial j(B_\lambda \bar v) + \partial I_{\mathcal{V}_{ad}}(\bar v).
+\end{equation}	
+%
+Using the  calculus rules for subdifferentials, for instance see \cite{Bauschke_2017}, we compute  $\partial j(B_{\lambda}v)=B_{\lambda}^*\partial j(B_{\lambda} v)$, for any $v\in L^{2}(\Omega)$, where the subdifferential  $j(B_{\lambda} v)$ can be computed using the subdifferential of \eqref{eq:bic_l0}; thus, we have
+$$\zeta \in \partial j(B_{\lambda} v) \quad \Leftrightarrow \quad \zeta(x)
+=
+\begin{cases} 
+\{\alpha(B_{\lambda} v)(x) \}, & \text{if } |(B_{\lambda} v)(x)| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+\{\sqrt{2 \alpha \beta} \, \sign((B_{\lambda} v)(x)\}, & \text{if } 0<|(B_{\lambda} v)(x)| < \sqrt{\frac{2\beta}{\alpha}}, \\
+[-\sqrt{2 \alpha \beta},\sqrt{2 \alpha \beta}], & \text{if } (B_{\lambda} v)(x)=0,
+\end{cases} 
+$$
+implying \eqref{eq:os_reg_subgr} since $B_\lambda \bar v(x) =\bar u_\lambda(x)$, for almost all $x$.
+Furthermore, it is also known (see \cite{combettes2018}) that $\partial I_{\mathcal{V}_{ad}}(\bar v)$ corresponds to the normal cone of $\mathcal{V}_{ad}$ at $\bar v$. That is
+\begin{equation}\label{def:normal_cones}
+    \partial I_{\mathcal{V}_{ad}}(\bar v)=N_{\mathcal{V}_{ad}}(\bar{v}) = \{ \xi \in L^2(\om) \mid \langle \xi, v - \bar{v} \rangle \leq 0, \, \forall v \in \mathcal{V}_{ad} \}.
+\end{equation}
+Thus, by taking $\tilde\varphi=S^*(SB_\lambda \bar v -y_d)$, the inclusion \eqref{eq:Fermat} can be written as: 
+\begin{equation}\label{eq:gradient_convex}
+0 \in B^*_{\lambda}\tilde\varphi+  B^*_{\lambda}\partial j(\bar v) +N_{\mathcal{V}_{ad}}(\bar v),
+\end{equation}
+Equivalently, there exists $\zeta \in \partial j(B_{\lambda}\bar v) = \partial j(\bar u_\lambda)$ satisfying \eqref{eq:os_reg_subgr} such that 
+\begin{align}
+	 &( B^*_{\lambda}(\tilde\varphi+ \zeta), v - \bar{v})_{L^2(\om)} \geq 0, \quad \forall v \in \mathcal{V}_{ad} \nonumber \\
+	 \Leftrightarrow  &\quad \bar v(x) = P_{[-\delta,\delta]}\big( \bar v(x) + B^*_{\lambda}(\tilde\varphi+ \zeta)(x)\big), \label{eq:projection_P}
+\end{align}
+where $P_{[-\delta,\delta]}$ denotes the projection on the interval $[-\delta,\delta]$. 
+
+Now, since the $\max$ function maps $L^2(\om)$ into $L^2(\om)$ we can define  the following nonnegative functions in $L^2(\om)$: % 
+\begin{equation*}
+    \mu_a(x) = \max(0,B_\lambda^*(\tilde\varphi+ \zeta)(x)) \quad \mbox{ and } \quad \mu_b(x) = -\min(0,B_\lambda^*(\tilde\varphi+ \zeta)(x)).
+\end{equation*}
+% 
+then, denoting $\mu=\mu_a -\mu_b$
+$$ B^*_{\lambda}(\tilde\varphi+ \zeta) +\mu =0. $$ 
+Recalling that $B^{-*}_{\lambda}= (\lambda I + S^*)$, and defining  $\varphi = \tilde\varphi + S^*\mu = S^*(SB_\lambda \bar v -y_d +\mu_b-\mu_a)$, we arrive to equation \eqref{eq:os_reg_grad}
+%
+$$ 0=\tilde\varphi +\zeta + B^{-*}_{\lambda}(\mu_b-\mu_a)= \varphi +\zeta + \lambda (\mu_b-\mu_a).  $$
+%
+Since the functions $\mu_a$ and $\mu_b$ are nonnegative, then \eqref{eq:os_reg_nnmu} is satisfied. Also, by their definition and projection \eqref{eq:projection_P}, it is easy to see that $\mu_a$ and $\mu_a$ verify \eqref{eq:os_reg_compl}. Indeed, if $x\in \om$ is such that $0<\mu_b(x)$, then $\mu_a(x)=0$. Therefore,
+$\bar v(x) = \delta $, otherwise \eqref{eq:projection_P} implies $B_\lambda^*(\tilde \varphi +\zeta)(x) =-\mu_b(x)=0$. Analogously,  $\mu_a$ satisfies the complementarity condition \eqref{eq:os_reg_compl}.
+
+In addition, the definition of $S^*$ implies that $\varphi \in H_0^1(\om)$ satisfies the adjoint equation: 
+\begin{equation*}
+\begin{array}{rlr}
+	A^*\varphi & =  SB_\lambda \bar v -y_d + \mu_b-\mu_a =& \bar y -y_d + \mu_b-\mu_a, \text{ in } \om, \\
+      \varphi &= 0, & \text{ on } \ga ,
+\end{array}
+\end{equation*}
+thus equation \eqref{eq:os_reg_adj} holds. 
+\end{proof}
+\begin{remark}
+A semi-implicit expression for $\bar u_\lambda$ can be obtained using the operator $ (\partial j)^{-1}=-\tilde\Phi$ which is the maximal monotone extension of the known hard-thresholding operator; see \cite{itokun2014}. To see this, consider equation \eqref{eq:gradient_convex} and the multiplier $\mu = \mu_b-\mu_a$, then we solve for $\bar u_\lambda$. In view of \eqref{eq:os_reg_grad}, $-(\varphi_\lambda+\lambda \mu) \in \partial j(B_\lambda \bar v)$. Therefore, proceeding formally, we have:
+\begin{align*}
+    \bar u_\lambda = B_\lambda \bar v =& \partial_{j}^{-1} ( -(\varphi +\lambda \mu )) \\
+    &=-\tilde\Phi (\varphi_\lambda + \lambda\mu),
+\end{align*}
+with $\varphi_\lambda$ solving the adjoint equation \eqref{eq:os_reg_adj}. Thus, using the formula for $\tilde \Phi$ in \cite[pg. 1257]{itokun2014}, we write
+\begin{equation}\label{eq:optimal_u}
+\bar u_\lambda(x) \,
+\begin{cases}
+=-\dfrac{\varphi_\lambda(x) + \lambda \mu(x)}{\alpha}, & \text{if}\quad  |\varphi_\lambda(x) + \lambda \mu(x)| > \sqrt{2\alpha\beta}, \\
+=0,  & \text{if}\quad  |\varphi_\lambda(x) + \lambda \mu(x)| < \sqrt{2\alpha\beta}, \\
+\in [-\sqrt{\frac{2\beta}{\alpha}},0],  & \text{if}\quad  \varphi_\lambda(x) + \lambda \mu(x) = \sqrt{2\alpha\beta}, \\
+\in [0,\sqrt{\frac{2\beta}{\alpha}}], & \text{if}\quad  \varphi_\lambda(x) + \lambda \mu(x) = -\sqrt{2\alpha\beta}.
+\end{cases}
+\end{equation}
+Also, note that in the inactive set i.e. $\{x:\in\om: |\mu \bar u_\lambda (x) + \bar y_\lambda(x)| <\delta\}$ it holds: 
+\begin{equation}\label{eq:optimal_u_ina}
+\bar u_\lambda(x) \,
+\begin{cases}
+=-\dfrac{\varphi_\lambda(x)}{\alpha}, & \text{if}\quad  |\varphi_\lambda(x)| > \sqrt{2\alpha\beta}, \\
+=0,  & \text{if}\quad  |\varphi_\lambda(x)| < \sqrt{2\alpha\beta}, \\
+\in [-\sqrt{\frac{2\beta}{\alpha}},0],  & \text{if}\quad  \varphi_\lambda(x) = \sqrt{2\alpha\beta}, \\
+\in [0,\sqrt{\frac{2\beta}{\alpha}}], & \text{if}\quad  \varphi_\lambda(x)  = -\sqrt{2\alpha\beta}.
+\end{cases}
+\end{equation}
+\end{remark}
+
+Let us now discuss the existence of solutions for the nonconvex problem \eqref{eq:P_delta_lambda}. As previously mentioned, this problem might not have a solution in general. In the unconstrained and control-constrained cases, Ito and Kunisch \cite{itokun08} proved the existence of generalized optimal controls, which are functions that are not completely defined in the set where the absolute value of the adjoint state equals the value $\sqrt{2\alpha\beta}$; i.e. $\{x:|\varphi(x)| = \sqrt{2\alpha\beta} \}$. Nevertheless, the existence of an optimal control for the nonconvex problem was established depending on the measure of the set $\{x:|\varphi(x)| = \sqrt{2\alpha\beta} \}$ being zero, which is often the case. 
+
+For the case involving mixed control-state constraints, we observe that the optimal control for the convexified problem satisfies the relation \eqref{eq:optimal_u} although the control remains undefined in the set $\{x:|\varphi(x) +\lambda \mu(x)| = \sqrt{2\alpha\beta} \}$. Similarly, we condition the existence of a solution of the nonconvex problem $\eqref{eq:P_delta_lambda}$ to the measure of this set. Note that the multiplier $\mu$ is a function in $L^2(\om)$ that is nonzero precisely where $y+\lambda u$ is active. Then, in the inactive set the condition remains the same as in the unconstrained case. Therefore, extending the assumption of zero measure to the set $\{x:|\varphi(x) +\lambda \mu(x)| = \sqrt{2\alpha\beta} \}$ seems natural. 
+
+
+The following Theorem shows that a solution of problem \eqref{eq:P_convex_lambda} that satisfies the following condition is a solution for \eqref{eq:P_delta_lambda}.
+%
+\begin{assumption}\label{as:zeromeasure}
+Let $\bar u \in L^2(\om)$ be a solution for \eqref{eq:P_convex_lambda} with adjoint state $\bar\varphi$ satisfying \eqref{eq:os_reg_adj}. The set
+    $$\om_{\varphi_\lambda}=\{x \in \om : |\varphi_\lambda(x)|=w_q\},$$
+    has zero measure.
+\end{assumption}
+
+  
+% \begin{theorem}
+%     Let $\bar u_{\lambda}$ be a solution for the convex problem \eqref{eq:P_convex_lambda}  with state $\bar y_{\lambda}$, adjoint state $\varphi_{\lambda}$ and multiplier ${\mu}$ satisfying the optimal system \eqref{eq:optimal_system_regular}. Then, under Assumption \ref{as:zeromeasure}, the pair $\bar u_{\lambda}$ is also an optimal control for \eqref{eq:P_convex_lambda}.    
+% \end{theorem}
+% \textcolor{red}{
+% \begin{proof}
+%     Defining the sets
+%     \[
+%     \om_{1}=\{x\in \om: |\varphi_{\lambda}(x)+\lambda \mu(x)|>\sqrt{2\alpha\beta}\}, \qquad \om_{2}=\om\setminus (\om_1\cup \om^*).
+%     \]
+%     Then, from \eqref{eq:optimal_u} we have that $\bar u_{\lambda}(x)=0$ for almost all $x\in \om_2$. Thus,
+%     \begin{equation}
+%         \norm{\bar u_{\lambda}}_{L^2(\om)}^2+\norm{\bar u_{\lambda}}_0 = \int_{\om_1} \frac{\alpha}{2}|\bar u_{\lambda}(x)|^2+\beta |\bar u_{\lambda}(x)|^0 = j_0(\bar u_{\lambda}),
+%     \end{equation}
+%     where the last equality follows from the first equality of \eqref{eq:optimal_u} and the definition of $j_0$. On the other hand, we define the sets 
+%     \[
+%     \om_3:=\l\{x\in \om: |u(x)|\ge \sqrt{\frac{2\beta}{\alpha}}\r\}, \qquad \om_{4}=\om\setminus \om_3.
+%     \]
+%     Then, we have that
+%     \begin{align*}
+%         J(y,u)-J(\bar y_{\lambda},\bar u_{\lambda})=&\frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2+\frac{\alpha}{2}\norm{u}_{L^2(\om)}^2+\beta\norm{u}_{0}\\
+%         &-\frac{1}{2}\norm{\bar y_{\lambda}-y_d}_{L^2(\om)}^2-\frac{\alpha}{2}\norm{\bar u_{\lambda}}_{L^2(\om)}^2-\beta\norm{\bar u_{\lambda}}_{0}\\
+%         =&\frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2+j_0(u)-\frac{1}{2}\norm{\bar y_{\lambda}-y_d}_{L^2(\om)}^2-j_0(\bar u_{\lambda})\\
+%         &+\int_{\om_4}\frac{\alpha}{2}|u(x)|^2+\beta |u(x)|^0-\sqrt{2\alpha\beta}|u(x)|\; dx\\
+%         =&\tilde J(y,u)-\tilde J(\bar y_{\lambda}, \bar u_{\lambda})\\
+%         &+\int_{\om_4}\frac{\alpha}{2}|u(x)|^2+\beta |u(x)|^0-\sqrt{2\alpha\beta}|u(x)|\; dx
+%     \end{align*}
+%     Now, if we split the set $\om_4$ into the subsets $\om_5:=\{x\in \om_4: |u(x)|>0\}$ and $\om_6=\om_4\setminus\om_5$, we have
+%     \[
+%     \int_{\om_4}\frac{\alpha}{2}|u(x)|^2+\beta |u(x)|^0-\sqrt{2\alpha\beta}|u(x)|\; dx =\int_{\om_5}\frac{\alpha}{2}|u(x)|^2 -\sqrt{2\alpha\beta}|u(x)|+\beta\; dx.
+%     \]
+%     Due to the local convexity of the function $t\mapsto \frac{\alpha}{2}|t|^2-\sqrt{2\alpha\beta}|t|+\beta$ over the sets $\l(-\sqrt{\frac{2\beta}{\alpha}}, 0\r)$ and $\l(0, \sqrt{\frac{2\beta}{\alpha}}\r)$, we have that $|t^*|=\sqrt{\frac{2\beta}{\alpha}}$ are two global minimums for this function, and therefore, for any $t$ in those intervals, we have that
+%     \[
+%     \frac{\alpha}{2}|t|^2-\sqrt{2\alpha\beta}|t|+\beta\ge \frac{\alpha}{2}|t^*|^2-\sqrt{2\alpha\beta}|t^*|+\beta=\beta -2\beta+\beta=0.
+%     \]
+%     Finally, by the last relation and the fact that $(\bar y_{\lambda}, \bar u_{\lambda})$ is a minimum for $\tilde J$, we have that
+%     \begin{align*}
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda})&=\tilde J(y,u)-\tilde J(\bar y_{\lambda}, \bar u_{\lambda})\\        &+\int_{\om_4}\frac{\alpha}{2}|u(x)|^2+\beta |u(x)|^0-\sqrt{2\alpha\beta}|u(x)|\; dx\ge 0
+%     \end{align*}
+%     and the results follows.
+% \end{proof}
+% }
+
+\begin{theorem}
+         Let $\bar u_{\lambda}$ be a solution for the convex problem \eqref{eq:P_convex_lambda}  with state $\bar y_{\lambda}$, adjoint state $\varphi_{\lambda}$ and multiplier ${\mu}$ satisfying the optimal system \eqref{eq:optimal_system_regular}. Then, under Assumption \ref{as:zeromeasure}, $\bar u_\lambda$ is the unique solution for \eqref{eq:P_delta_lambda}.
+\end{theorem}
+ \begin{proof}.
+Given that $\bar u_{\lambda}$ is a solution for \eqref{eq:P_convex_lambda} satisfying the Assumption \ref{as:zeromeasure}, then it is also a solution to \eqref{eq:P_delta_lambda}. Then, the uniqueness can be deduced with the same arguments of \cite[Theorem 2.11 ]{itokun2014}, by noticing that $\mu \in N_{\mathcal{V}_{ad}}( \lambda \bar u_{\lambda} + S \bar u_\lambda)$ if and only if $(\lambda I+S)^*\mu \in  N_{\mathcal{U}_{ad}}( \bar u) = \partial I_{\mathcal{U}_{ad}}(\bar u_\lambda)$, using $\varphi_\lambda +\lambda \mu$ in place of the adjoint state. Then, by redefining the sets $S^{0}:=\{x\in \om: |\varphi_{\lambda}+\lambda \mu|<\sqrt{2\alpha\beta}\}$ and $S^{+}:=\{x\in \om: |\varphi_{\lambda}+\lambda \mu|>\sqrt{2\alpha\beta}\}$, analogous estimates lead to $J(y,u)>J(\bar y_\lambda, \bar u_\lambda)$, for all $u\in \mathcal{U}_{ad}$ and $y$ with $y=Su$.  
+
+ 
+%     We follow the arguments of \cite[Theorem 2.11 ]{itokun2014} with modifications. First, from Assumption \ref{as:zeromeasure}, we have the existence of a solution $(\bar y_{\lambda},\bar u_{\lambda})$ for \eqref{eq:P_delta_lambda}. Thus, any feasible pair $(y,u)$ for the problem \ref{eq:P_delta_lambda} satisfies    
+%    \begin{equation}\label{eq:th2_1}
+%         \begin{aligned}.
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) 
+%         =&\; \frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2 - \frac{1}{2}\norm{\bar y_{\lambda}-y_d}_{L^2(\om)}^2\\
+%         &+ \frac{\alpha}{2}\norm{u}_{L^2(\om)}^2 - \frac{\alpha}{2}\norm{\bar u_{\lambda}}_{L^2(\om)}^2\\
+%         &+ \beta \left( \int_{\om} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right)\\
+%         &+ I_{\mathcal{U}_{ad}}(u) - I_{\mathcal{U}_{ad}}(\bar u )\,
+%         \end{aligned}
+%         \end{equation}
+%     where $\mathcal{U}_{ad}$ is given by \eqref{eq:U_ad}. \textcolor{red}{In addition, we see that 
+%     \[
+%     \mu \in N_{\mathcal{V}_{ad}}(\bar v) \Leftrightarrow (\lambda I+S)^*\mu \in  N_{\mathcal{U}_{ad}}(\bar u).
+%     \]
+%     In fact, from \eqref{def:normal_cones}, since $\bar v=(\lambda I+S)\bar u$, we have that if $\mu \in  N_{\mathcal{V}_{ad}}(\bar v)$, then, for any $v\in \mathcal{V}_{ad}$:
+%     \begin{align*}
+%         0\ge&(\mu, v-\bar v)_{L^2(\om)}\\
+%             &=(\mu, (\lambda I+S)(\lambda I+S)^{-1}v-(\lambda I+S)(\lambda I+S)^{-1}\bar v)_{L^2(\om)}\\
+%             &=((\lambda I+S)^*\mu, (\lambda I+S)^{-1}v-\bar u)_{L^2(\om)}.
+%     \end{align*}
+%     Take $w=(\lambda I+S)^{-1}v$; therefore, $(\lambda I+S)w=v$. Since $v\in \mathcal{V}_{ad}$, it is clear that $w\in \mathcal{U}_{ad}$ by definition \eqref{eq:U_ad}, thus $\mu \in N$. Now, take $ (\lambda I+S)^*\mu \in  N_{\mathcal{U}_{ad}}( \bar u)$. By \eqref{def:normal_cones} we have that for any $z\in \mathcal{U}_{ad}$,
+%     \begin{align*}
+%         0\ge&((\lambda I+S)^*\mu, z-\bar u)_{L^2(\om)}\\
+%         =&(\mu, (\lambda I+S)z-(\lambda I+S)\bar u)_{L^2(\omega)}\\
+%         =&(\mu, (\lambda I+S)z-\bar v)_{L^2(\omega)}.
+%     \end{align*}
+%     }
+%     Take $v=(\lambda I+S)z$. Since $z\in \mathcal{U}_{ad}$, we have $v\in \mathcal{V}_{ad}$. Therefore, we finally conclude that $\mu \in N_{\mathcal{V}_{ad}}$. Inserting $\varphi_\lambda = S^*(\bar y-y_d + \mu)$ in \eqref{eq:th2_1}
+    
+%     %functions tell us that from \eqref{eq:th2_1}
+%     \begin{equation}\label{eq:th2_2}
+%         \begin{aligned}
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) .
+%         \ge&\; (S^*(\bar y_\lambda-y_d),u-\bar u_{\lambda})_{L^2(\om)}+\frac{1}{2}\norm{y-\bar . y_{\lambda}}_{L^2(\om)}^2 +\alpha(\bar u_{\lambda}, u-\bar u_{\lambda})\\
+%         &+\frac{\alpha}{2}\norm{u-\bar u_{\lambda}}^2_{L^2(\om)} + \beta \left( \int_{\om} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right)\\
+%         &+(\lambda\mu+S^*\mu,u-\bar u_{\lambda})_{L^2(\om)}\\
+%         =&(\varphi_{\lambda}+\alpha \bar u_{\lambda}+\lambda\mu,u-\bar u_{\lambda})_{L^2(\om)}+\frac{1}{2}\norm{y-\bar y_{\lambda}}_{L^2(\om)}^2\\
+%         &+\frac{\alpha}{2}\norm{u-\bar u_{\lambda}}^2_{L^2(\om)} + \beta \left( \int_{\om} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right),       
+%         \end{aligned}
+%     \end{equation}
+%     where $\mu\in N_{\mathcal{V}_{ad}}((\lambda I+S)\bar u_{\lambda})$. Define the sets
+%     \[
+%     S^{0}:=\{x\in \om: |\varphi_{\lambda}+\lambda \mu|<\sqrt{2\alpha\beta}\}, \qquad S^{+}:=\{x\in \om: |\varphi_{\lambda}+\lambda \mu|>\sqrt{2\alpha\beta}\},
+%     \]
+%     and notice that from \eqref{eq:optimal_u} we have $\varphi_{\lambda}+\alpha \bar u_{\lambda}+\lambda\mu=0$ on $S^{+}$ and $\bar u_{\lambda}=0$ on $S^0$. Then,
+%     \begin{equation}\label{eq:th2_3}
+%         \begin{aligned}
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) 
+%         \ge&\int_{S^0}(\varphi_{\lambda}+\lambda\mu)u+\frac{1}{2}\norm{y-\bar y_{\lambda}}_{L^2(\om)}^2\\
+%         &+\frac{\alpha}{2}\norm{u-\bar u_{\lambda}}^2_{L^2(\om)} + \beta \left( \int_{\om} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right)\\
+%         =&\int_{S^0}(\varphi_{\lambda}+\lambda\mu)u+\frac{1}{2}\norm{y-\bar y_{\lambda}}_{L^2(\om)}^2\\
+%         &+\frac{\alpha}{2}\norm{u-\bar u_{\lambda}}^2_{L^2(\om)} + \beta \left( \int_{S^{+}} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right)\\
+%         &+\beta\int_{S^0}\chi_{\{u(x)\ne 0\}}\\
+%         =&\int_{S^0}(\varphi_{\lambda}+\lambda\mu)u+\beta\chi_{\{u(x)\ne 0\}}+\frac{1}{2}\norm{y-\bar y_{\lambda}}_{L^2(\om)}^2\\
+%         &+\frac{\alpha}{2}\norm{u-\bar u_{\lambda}}^2_{L^2(\om)} + \beta \left( \int_{S^{+}} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} \right)
+%         \end{aligned}
+%     \end{equation}
+%     Now, take the sets:
+%     \[
+%     S_{0}^{+}:=\{x\in S^{+}: u(x)=0\}, \qquad S_{0}^{0}:=\{x\in S^{0}: u(x)\ne 0\}.
+%     \]
+%     We have that
+%     \begin{align*}
+%         \norm{u-\bar u_{\lambda}}_{L^2(\om)}^2=&\int_{S_0^{+}}(u-\bar u_{\lambda})^2\; dx + \int_{S^{+}\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx\\
+%         &+\int_{S_0^{0}}(u-\bar u_{\lambda})^2\; dx + \int_{S^0\setminus S_0^{0}}(u-\bar u_{\lambda})^2\; dx\\
+%         &=\int_{S_0^{+}}(-\bar u_{\lambda})^2\; dx + \int_{S^+\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx\\
+%         &+\int_{S_0^{0}}(u)^2\; dx
+%     \end{align*}
+%     and since $|\varphi_{\lambda}+\lambda\mu|>\sqrt{2\alpha\beta}$ on $S^+$, by \eqref{eq:optimal_u} we have that $\bar u_{\lambda}\ne 0$. Thus:
+%     \begin{align*}
+%          \int_{S^{+}} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}} =& \int_{S_0^{+}} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}}\\
+%          &+\int_{S^+\setminus S_0^{+}} \chi_{\{u(x)\ne 0\}} - \chi_{\{\bar u_{\lambda}(x)\ne 0\}}\\
+%          =&-\int_{S_0^+}\; dx         
+%     \end{align*}
+%     Therefore, from \eqref{eq:optimal_u} and \eqref{eq:th2_3} we have that
+%     \begin{equation}\label{eq:th2_4}
+%         \begin{aligned}
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) 
+%         \ge&\frac{\alpha}{2}\int_{S^{+}\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx\\        &+\int_{S_0^0}\l((\varphi_{\lambda}+\lambda\mu)u+\beta)+\frac{\alpha}{2}u^2\r)\; dx\\
+%         &+\int_{S_0^+}\frac{\alpha}{2}\bar u_{\lambda}^2-\beta\; dx + \norm{y-y_d}_{L^2(\om)}^2\\
+%         &=\int_{S^{+}\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx\\       &+\int_{S_0^0}\l((\varphi_{\lambda}+\lambda\mu)u+\beta)+\frac{\alpha}{2}u^2\r)\; dx\\
+%         &+\int_{S_0^+}\l(\frac{1}{2\alpha}(\varphi_{\lambda}+\lambda\mu)^2-\beta\r)\; dx + \norm{y-y_d}_{L^2(\om)}^2
+%         \end{aligned}
+%     \end{equation}
+%      Notice that in the set $S_0^{+}$ we have that $|\varphi_{\lambda}+\lambda\mu|>\sqrt{2\alpha\beta}$ and therefore $\frac{1}{2\alpha}(\varphi_{\lambda}+\lambda\mu)^2>\beta$. Thus, completing the square in the second integral we have
+%     \begin{equation}\label{eq:th2_5}
+%         \begin{aligned}
+%         J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) 
+%         \ge&\frac{\alpha}{2}\int_{S^{+}\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx\\        &+\int_{S_0^0}\l(\frac{1}{2}\l|\sqrt{a}u+\frac{\varphi_{\lambda}+\lambda\mu}{\sqrt{\alpha}}\r|^2+\beta-\frac{|\varphi_{\lambda}+\lambda\mu|^2}{2\alpha}\r)\; dx\\
+%         &+\norm{y-y_d}_{L^2(\om)}^2
+%         \end{aligned}
+%     \end{equation}
+%     If $|S_0^0|\ne 0$, since $|\varphi_{\lambda}+\lambda\mu|<\sqrt{2\alpha\beta}$, we have that $\frac{|\varphi_{\lambda}+\lambda\mu|^2}{2\alpha}<\beta$, and therefore $J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda})>0$. Otherwise $u(x)=\bar u_{\lambda}(x)=0$ on $S^0$, and
+%     \[
+%     J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda}) 
+%         \ge\frac{\alpha}{2}\int_{S^{+}\setminus S_0^{+}}(u-\bar u_{\lambda})^2\; dx+\norm{y-y_d}_{L^2(\om)}^2.
+%     \]
+%     If $|S_0^{+}|=0$ and $J(y,u)=J(\bar y_{\lambda},\bar u_{\lambda})$, then 
+%     \[
+%     0\ge \frac{\alpha}{2}\int_{S^+}(u-\bar u_{\lambda})^2\; dx,
+%     \]
+%     and therefore $u=\bar u_{\lambda}$ a.e on $S^{+}$ and thus, on $\om$. Otherwise $|S_0^{+}|>0$ and $u=0$ on $S_0^+$ and by \eqref{eq:optimal_u}, $\bar u_{\lambda}\ne 0$ on $S_0^{+}$. Consequently $y\ne \bar y_{\lambda}$ and again $J(y,u)-J(\bar y_{\lambda}, \bar u_{\lambda})>0$, proving that $(\bar y_{\lambda}, \bar u_{\lambda})$ is the unique minimum for the problem.
+ \end{proof}
+
+
+% \section{Regularized state-constraints}
+
+% Lavrentiev regularization for pointwise state constraints was initially introduced in \cite{mrt03b} to address the issue of low regularity in Lagrange multipliers associated with state constraints, which are often characterized as regular Borel measures.
+
+% \sout{ The core concept of this regularization method can be outlined as follows: first, the compact embedding operator from $H_0^1(\Omega)$ to $L^2(\Omega)$ denoted by $E$ is used to define the mixing operator $R$ from $L^2(\om)$ to $L^2(\om)$ by $R = ES$, where $S$ represents is solution operator mapping the control $u$ to its corresponding state $y = Ru$. Next, we redefine the control variable as $v = \lambda u + y = \lambda u + Ru = (\lambda I + R)u$ for $\lambda > 0$. The operator $\lambda I + R$ is shown to be a Fredholm operator with a discrete set of eigenvalues that accumulate at zero.
+% }
+
+% Moreover, since $R$ is positive definite (see \cite{mrt03b}), we can define the invertible operator $B_{\lambda}:L^{2}(\om)\to L^{2}(\om)$  such that
+% \begin{equation}\label{eq:change_of_variable}
+% 	 B_{\lambda}v=B_{\lambda}(y+\lambda u)=(\lambda I+R)^{-1}(R+\lambda I)(u)=u,
+% \end{equation}  
+% We observe by definition that $y=SB_{\lambda}v$.  Now, we consider the following regularized problem:     
+% %
+% \begin{equation}\label{convex_lav}\tag{$P_{\delta, \lambda}$}
+%     \begin{cases}
+%     \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; \tilde J(y,u)=\frac{1}{2}\norm{y-y_d}^2_{L^2(\om)}+ j_0(u)\\
+%     \mbox{subject to:}\\
+%     \qquad\qquad Ay=u+f, \phantom{aaaaa} \mbox{in } \om,\\
+%         \qquad\qquad y=0, \phantom{aaaaaaaaa} \mbox{over } \Gamma,\\    
+%         \qquad\qquad |y(x) + \lambda u(x)|\leq \delta \phantom{alaa} \mbox{for almost all }x\in \Omega,
+%     \end{cases}
+% \end{equation}
+
+
+
+
+
+\section{State constraints and its regularization}
+An important application of mixed control-state constraints arises in the context of Lavrentiev regularization for pointwise state constraints (see~\cite{meyroetro06}). In this regularization approach, pointwise state constraints $\{x : |y(x)| \leq \delta \}$ are replaced by mixed control-state constraints $\{x : |y(x) + \lambda u(x)| \leq \delta \}$ as $\lambda \to 0$. A key advantage of this regularization is that the associated Lagrange multipliers are functions in $L^2(\Omega)$, in contrast to pointwise state constraints whose multipliers are regular Borel measures (see~\cite{cas86}).
+We now consider the pointwise-state constrained problem:
+
+\begin{equation}\label{eq:P_statec}\tag{$P^0_0$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; J_0^0(y,u):=\frac{1}{2}\norm{y-y_d}^2_{L^2(\om)}+\frac{\alpha}{2}\norm{u}^2_{L^2(\om)}+\beta \norm{u}_0\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+    \qquad\qquad Ay(x)&=u(x) + f(x), &\mbox{in } \om,\\
+        \qquad\qquad y(x)&=0,  &\mbox{over } \Gamma,\\    
+        \qquad\qquad |y(x)|&\leq \delta &\mbox{for all }x\in \Omega,
+     \end{array}
+    \end{cases}
+\end{equation}
+and, analogously as in the previous section, we write down its convexification via $\Gamma$-regularization with penalty $j$ defined in \eqref{eq:bic_l0}:  
+\begin{equation}\label{eq:P_convex_statec}\tag{$P_0$}
+    \begin{cases}
+    \displaystyle\min_{(y,u)\in H_0^1(\om)\times L^2(\om)}\; J(y,u):=\frac{1}{2}\norm{y-y_d}^2_{L^2(\om)}+j(u)\\
+    \mbox{subject to:}\\
+    \begin{array}{rll}
+    \qquad\qquad Ay(x)&=u(x) + f(x), &\mbox{in } \om,\\
+        \qquad\qquad y(x)&=0,  &\mbox{over } \Gamma,\\    
+        \qquad\qquad |y(x)|&\leq \delta &\mbox{for all }x\in \Omega,
+     \end{array}
+    \end{cases}
+\end{equation}
+Again, the convexity of the cost function of problem \eqref{eq:P_convex_statec} allows the application of the direct method to conclude the existence of at least one solution $(\bar y, \bar u) \in H_0^1(\om)\times L^2(\om)$. 
+
+% Moreover, as established by Casas \cite{cas86},  there exists a real regular Borel measure defined on $\Omega$ and an adjoint state $\varphi \in W^{1,\sigma}(\Omega)$ for $\sigma \in \left[1,\frac{n}{n-1}\right]$ such that:
+% \textcolor{red}{
+% \begin{subequations}\label{eq:optimal_p0}
+% \begin{align}
+% &\begin{array}{rlr}
+% 	A\bar y & = \bar u +f & \text{ in } \om, \\
+%       \bar y &= 0 & \text{ on } \ga, 
+% \end{array}\\
+% %
+% &\,\begin{array}{rlr}
+% 	A^*\varphi & = \bar y -y_d + \mu& \text{ in } \om, \\
+%       \varphi &= 0 & \text{ on } \ga ,
+% \end{array}\\
+% &\quad \varphi+\zeta =0, \label{eq:os_reg_grad} \\
+% &\int_{\om}(\bar y - y)\; d\mu \ge 0 \qquad \text{for all }y\in C(\bar\om) \text{ such that }|y(x)|\le \delta,\\
+% &\zeta(x) = 
+% \begin{cases} 
+% \{\alpha \bar u(x) \}, & \text{if } |\bar u(x)| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+% \{\sqrt{2 \alpha \beta} \, \sign(\bar u(x))\}, & \text{if } 0<|\bar u(x)| < \sqrt{\frac{2\beta}{\alpha}}, \\
+% [-\sqrt{2 \alpha \beta},\sqrt{2 \alpha \beta}], & \text{if } \bar u(x)=0.
+% \end{cases} \label{eq:os_reg_subgr}
+% \end{align}
+% \end{subequations}
+%Therefore, assuming that $|\{x\in \om: |\varphi(x)|=\sqrt{2\alpha\beta}\}|=0$, similar arguments as in Theorem 2.11 in \cite{itokun2014} can be used to establish that $(\bar y, \bar u)$ is unique for \eqref{eq:P_convex_statec}.
+%} 
+% The following theorem is obtained by standard arguments.
+% \begin{theorem}
+% There exists a unique solution for \eqref{eq:relaxed_P_delta}.
+% \end{theorem}
+% \begin{proof}
+%     Let $\{(y_k,u_k)\}_k \subset H_0^1(\om)\times L^2(\om) $ a minimizing sequence of state-control pairs. Hence, $y_k=S(u_k)$ satisfies the state equation with right-hand side $u_k$. Since $J(y_k,u_k) \arrow \inf (P_\delta) $ as $k\to\infty$. The boundedness of $\{u_k\}_k$  is a consequence of  the Tikhonov regularizer $\frac{\alpha}{2}\|\cdot\|_{L^2(\om)}$.
+% In turn, the boundedness of $\{y_k\}_k =\{S(u_k)\}_k$ follows from the continuity of $S$.
+
+% By extracting a weakly convergent subsequence in $H_0^1(\om) \times L^2(\om)$ denoted by $\{(y_k,u_k)\}_k$ (without renaming)  with weak limit $(\bar y, \bar u) \in H_0^1(\om) \times L^2(\om)$,  by continuity of $S$ we have that $\bar y = S(\bar u)$ satisfies the state equation with right-hand side $\bar u$ implying the uniform convergence of $\{y_k\}_k$  to $\bar y \in C(\bar \om)$. Therefore,
+% $$|\bar y(x)| = \lim_{k\to \infty} |\bar y_k(x)| \leq \lim_{k\to \infty} \delta =\delta, \quad \forall x \in K.$$
+% This shows that $(\bar y, \bar u)$ is feasible for \eqref{eq:relaxed_P_delta}.
+% Finally, given the weakly lower semi-continuity of $j_0$ (which is convex and continuous) and the strong convergence of $y_k \to \bar y$ in $L^2(\om)$, we get
+% %
+% \begin{align*}
+% J(\bar y,\bar u) &\leq  \lim_{k\to \infty} \frac{1}{2} \|y_k -y_d\|^2_{L^2(\om)} + \liminf_{k\to \infty} j_0(u_k) \\ 
+% &= \liminf_{k\to \infty} \l\{ \frac{1}{2} \|y_k -y_d\|^2_{L^2(\om)} + j_0(u_k) \r\}\\
+% &=  \lim_{k\to \infty} J(y_k,u_k) = \inf(P_\delta),
+% \end{align*}
+% which proves that $(\bar y, \bar u)$ minimizes $J$. Finally, $(\bar y,\bar u)$ is unique due to the strict convexity of $J$ since $\alpha>0$.
+% \end{proof}
+\subsection{Necessary optimality conditions for \eqref{eq:P_convex_statec}}  
+The existence of a multiplier associated to pointwise-state constraints in \eqref{eq:P_statec} requires a constraint qualification in terms of the existence of a Slater point. This is possible since the set of constraints has a nonempty interior in the space of continuous functions $C(\bar \om)$. {\color{red} comentar este tema con el paper de Casas}
+
+
+The associated first-order optimality conditions are obtained by applying \cite[Theorem 3.2]{Casas_2020} that consider a general optimization problem: Let \( U \) and \( Y \) be two topological vector spaces and \( K \subset U \) and \( C \subset Y \) two convex sets. Given the mappings \( G : U \rightarrow Y \), \( f : U \rightarrow \mathbb{R} \) and \( g : U \rightarrow (-\infty, +\infty] \), we consider the optimization problem:
+
+\[
+\tag{Q} \min \{ f(u) + g(u) : u \in K \text{ and } G(u) \in C \}.
+\]
+
+Theorem 3.2 in \cite{Casas_2020} reads:
+%
+\begin{proposition}\label{prop:theorem32}
+	 \textit{Let \( \bar{u} \) be a local solution of (Q). Assume that \( f \) and \( G \) are G\^ateaux differentiable at \( \bar{u} \), \( g \) is convex and continuous at some point of \( K \), and \( \text{int} \, C \neq \emptyset \). Then there exist a real number \( \bar{\mu}_0 \geq 0 \), a multiplier \( \bar{\mu} \in Y^* \), and \( \bar{\lambda} \in \partial g(\bar{u}) \) such that
+}
+\begin{subequations}
+\begin{align}
+&(\bar{\mu}_0, \bar{\mu}) \neq (0,0), \label{eq:oc1}\\
+&\langle \bar{\mu}, y - G(\bar{u}) \rangle_{Y^*, Y} \leq 0 \quad \forall y \in C, \label{eq:oc2} \\
+&\langle \bar{\mu}_0 [f'(\bar{u}) + \bar{\lambda}] + [DG(\bar{u})]^* \bar{\mu}, u - \bar{u} \rangle_{U^*, U} \geq 0 \quad \forall u \in K. \label{eq:oc3}
+\end{align}
+	
+\end{subequations}
+
+
+\textit{Moreover, if the linearized Slater condition
+}
+
+\[
+\exists u_0 \in K : G(\bar{u}) + DG(\bar{u})(u_0 - \bar{u}) \in \text{int} \, C
+\label{eq:oc4}
+\]
+
+\textit{is satisfied, then \eqref{eq:oc3} holds with \( \bar{\mu}_0 = 1 \).
+}
+\end{proposition}
+
+According to Proposition \ref{prop:theorem32} and the definitions of the functions involved in problem \eqref{eq:P_convex_statec}, if $\bar u$ is an optimal control for \eqref{eq:P_convex_statec}, there exist $\mu$ in the space of regular Borel measures denoded by $M(\om)$ (identified with the dual of $C(\bar\om)$), a function $\varphi \in W_0^{1,\sigma}(\om)$ with $1\leq \sigma < \frac{n}{n-1}$ and a subgradient $\zeta \in \partial  j(\bar u)$, such that the following optimality system is fulfilled:
+
+\begin{subequations}\label{eq:optimal_system_P0}
+	\begin{align}
+&\begin{array}{rlc}
+	A\bar y & = \bar u + f& \text{ in } \om, \\
+      \bar y &= 0 & \text{ on } \ga, 
+\end{array}\\
+%
+&\,\begin{array}{rlc}
+	A^*\varphi & = \bar y -y_d + \mu& \text{ in } \om, \\
+      \varphi &= 0 & \text{ on } \ga ,
+\end{array} \label{eq:optimal_system_P0_b}\\
+& \int_\om (y(x) - \bar y(x)) \, d\mu(x) \leq 0, \quad \forall y : |y(x)|\leq \delta, \label{eq:optimal_system_P0_c}\\
+& \varphi  + \zeta =0, \quad 
+\zeta(x) = 
+\begin{cases} 
+\{\alpha \bar u(x) \}, & \text{for } |\bar u(x)| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+\{\sqrt{2 \alpha \beta} \, \text{sign}(\bar u(x))\}, & \text{for } 0<|\bar u(x)| < \sqrt{\frac{2\beta}{\alpha}}, \\
+[-\sqrt{2 \alpha \beta},\sqrt{2 \alpha \beta}], & \text{for } \bar u(x)=0.
+\end{cases} \label{eq:optimal_system_P0_d}
+\end{align}
+\end{subequations}
+
+\textcolor{red}{The relation between the solutions of \eqref{eq:P_statec} and \eqref{eq:P_convex_statec} is provided in the following Theorem:
+\begin{theorem}\label{th:3}
+    Let $(\bar y, \bar u)$ a solution for \eqref{eq:P_convex_statec}. Assume that if $\varphi$ is the function that satisfies \eqref{eq:optimal_system_P0}, $|\om_{*}|:=|\{x\in\om: |\varphi(x)|=\sqrt{2\alpha\beta}\}|=0$. Then, $(\bar y, \bar u)$ is a solution for \eqref{eq:P_statec}.
+\end{theorem}
+\begin{proof}
+    Since $\bar u$ is a solution for $\eqref{eq:P_convex_statec}$, by \eqref{eq:optimal_system_P0_d} we have that $\om_{1}:=\{x\in \om: 0<|\bar u(x)|<\sqrt{\frac{2\beta}{\alpha}}\}\subset \om_*$, so $|\om_1|=0$. Now, let $(y,u)$ a feasible solution for \eqref{eq:P_statec} and define $\om_2:=\{x\in \om: |u(x)|\ge \frac{2\beta}{\alpha}\}$. Then,
+    \[
+    \begin{aligned}
+        J_0^0(y,u)-J_0^0(\bar y, \bar u)=&\frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2-\frac{1}{2}\norm{\bar y-y_d}_{L^2(\om)}+I_{Y_{ad}}(y)-I_{Y_{ad}}(\bar y)\\
+        &+\frac{\alpha}{2}\norm{u}_{L^2(\om)}^2-\frac{\alpha}{2}\norm{\bar u}_{L^2(\om)}^2\\
+        &+ \beta \norm{u}_{0}-\beta\norm{\bar u}_0\\
+        =&\frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2-\frac{1}{2}\norm{\bar y-y_d}_{L^2(\om)}+I_{Y_{ad}(y)}-I_{Y_{ad}}(\bar y)\\
+        &+j(u)-j(\bar u)+\beta\norm{u}_0-\beta\norm{\bar u}_0\\
+        &+\int_{\om\setminus\om_2}\frac{\alpha}{2}u^2(x)\; dx-\int_{\om_2}\beta\; dx-\int_{\om\setminus\om_2}\sqrt{2\alpha\beta}|u(x)|\; dx\\
+        &-\int_{\om_1}\frac{\alpha}{2}\bar u^2(x)\; dx+\int_{\om\setminus\om_1}\beta\; dx+\int_{\om_1}\sqrt{2\alpha\beta}|\bar u(x)|\; dx.\\
+    \end{aligned}
+    \]
+    By optimality of $(\bar y, \bar u)$, we have the existence of the multipliers $\varphi \in W^{1,\sigma}(\om)$ for $1\le \sigma<\frac{n}{n-1}$ and $\zeta \in L^{\infty}(\om)$ such that
+    \[
+    \begin{aligned}
+        \frac{1}{2}\norm{y-y_d}_{L^2(\om)}^2-\frac{1}{2}\norm{\bar y-y_d}_{L^2(\om)}&+I_{Y_{ad}}(y)-I_{Y_{ad}}(\bar y)+j(u)-j(\bar u)\\
+        &\ge \norm{y-\bar y}_{L^2(\om)}+(\varphi+\zeta, u-\bar u)_{L^2(\om)},
+    \end{aligned}
+    \]
+    and moreover $\varphi+\zeta=0$ by \eqref{eq:optimal_system_P0_d}. Therefore, using the last relation, splitting the terms $\norm{u}_0$ and $\norm{\bar u}_0$ and taking account that $|\om_1|=0$ we have
+    \[
+    \begin{aligned}
+        J_0^0(y,u)-J_0^0(\bar y, \bar u)\ge& \frac{1}{2}\norm{y-\bar y}_{L^2(\om)}      +\int_{\om\setminus\om_2}\frac{\alpha}{2}u^2(x)\; dx-\int_{\om_2}\beta\; dx\\
+        &-\int_{\om\setminus\om_2}\sqrt{2\alpha\beta}|u(x)|\; dx +\int_{\om\setminus\om_1}\beta\; dx+\int_{\om_2}\beta\; dx\\
+        &+\int_{\om\setminus \om_2}\beta\; dx-\int_{\om\setminus\om_1}\beta\; dx\\
+        =& \frac{1}{2}\norm{y-\bar y}_{L^2(\om)}+\int_{\om\setminus\om_2}\l(\frac{\alpha}{2}u^2(x)-\sqrt{2\alpha\beta}|u(x)|+\beta\r)\; dx\\
+        =&\frac{1}{2}\norm{y-\bar y}_{L^2(\om)}+\int_{\om\setminus\om_2}\l(\sqrt{\frac{\alpha}{2}}|u(x)|-\sqrt{\beta}\r)^2\; dx\ge 0,
+    \end{aligned}
+    \]
+    proving that $(\bar y, \bar u)$ is a solution for \eqref{eq:P_statec}.
+\end{proof}}
+
+\textcolor{red}{The following Theorem follows similar steps as \cite[Theorem 2.11 ]{itokun2014}. 
+\begin{theorem}\label{th:4}
+    Under the Assumption that the measure of the set $\{x\in\om: |\varphi(x)|=\sqrt{2\alpha\beta}\}$ is zero, with $\varphi$ the function that solves \eqref{eq:optimal_system_P0_b} and \eqref{eq:optimal_system_P0_c}, then, the solution for $\eqref{eq:P_statec}$ is unique. 
+\end{theorem}}
+
+
+\subsection{Pass to the limit} \textcolor{red}{Following similar ideas as \cite{meyprftro07}, we investigate the limit of optimal solutions $(\bar y_{\lambda}, \bar u_{\lambda})$ of \eqref{eq:P_convex_lambda} when we take a sequence of positive values of $\lambda$ which converges to zero. For this purpose, take a positive sequence of reals $(\lambda_{n})_{n\in\mathbb{N}}$ such that $\lambda_n\to 0$ as $n\to\infty$. Define the sequence of functions
+\begin{equation}\label{eq:sequence_u_n}
+    u_n:=(\lambda_n I+S)^{-1}\bar y,
+\end{equation}
+where $(\bar y, \bar u)$ is a solution for \eqref{eq:P_convex_statec} and notice that $u_n$ is well defined by the compactness of $S$, and due to the feasibility of $\bar y$ for \eqref{eq:optimal_system_P0}, we have that $u_n$ is feasible for \eqref{eq:P_convex_lambda} taking $\lambda=\lambda_n$ and for each $n\in\mathbb{N}$. On the other hand, as we see in Theorem \ref{th:3}, under the hypothesis that the measure of the set $\{x\in\om: |\varphi(x)|=\sqrt{2\alpha\beta}\}$ is zero, with $\varphi$ satisfying the optimality system \eqref{eq:optimal_system_P0}, we have that $(\bar y, \bar u)$ is a solution for \eqref{eq:P_statec}. Now, if we let $\lambda\to 0$, the following Proposition follows similar as in \cite[Lemma 3.1]{meyprftro07}
+\begin{proposition}
+    The sequence $(u_n)$ defined through \eqref{eq:sequence_u_n} converges strongly to $\bar u$.
+\end{proposition}
+Now, if we form the sequence $(\bar y_n, \bar u_n)_{n\in\mathbb{N}}$ of optimal solutions for \eqref{eq:P_convex_lambda} with $\lambda=\lambda_n$, then, due to \eqref{eq:relation_j_norm} we have that for all $n\in\mathbb{N}$,
+\[
+\norm{\bar u_n}_{L^2(\om)}\le j(\bar u_n)\le J_{\lambda_n}(\bar y_n,\bar u_n)\le J_{\lambda_n}(0,0)=\norm{y_d}_{L^2(\om)},
+\]
+so $(\bar u_n)$ is uniformly bounded and therefore there exists some $\tilde u$ such that $\bar u_{n}\rightharpoonup\widetilde u$ trough a subsequence of $(\bar u_n)$, and moreover, the pair $(\tilde y,\tilde u)$, with $\widetilde y= S\widetilde u$ is feasible for \eqref{eq:P_convex_statec}, as we can deduce using similar arguments as in \cite[Lemma 3.2]{meyprftro07}. Finally, we have the following result.
+\begin{theorem}
+    Assume that the function $\varphi$ which satisfies the equations \eqref{eq:optimal_system_P0_b} and \eqref{eq:optimal_system_P0_c} is such that $|\{x\in\om: |\varphi(x)|=\sqrt{2\alpha\beta}\}|=0$, then $(\bar y_n,\bar u_n)\to (\bar y,\bar u)$ strongly in $L^2(\om)^2$, with $(\bar y, \bar u)$ the unique solution to \eqref{eq:P_statec}.  
+\end{theorem}
+\begin{proof}
+    Since $u_n$ defined in \eqref{eq:sequence_u_n} is such that the sequence $(y_n,u_n)$ with $y_n=Su_n$ is feasible for \eqref{eq:P_convex_lambda} for each $\lambda=\lambda_n$, then $J(y_n,u_n)\ge J(\bar y_n,\bar u_n)$ for all $n\in\mathbb{N}$. Moreover, since the weak limit $\widetilde u$ of $\bar u_n$ is feasible for \eqref{eq:P_convex_statec}, we have that $J(\widetilde y,\widetilde u)\ge J(\bar y, \bar u)$.  Since $g$ in \eqref{eq:bic_l0}  satisfies the relation $g(t)\le \frac{\alpha}{2}|t|^2+(\beta+1)$, then, according to \cite[Theorem 2.2]{ambrosetti} it defines a continuous Nemytskii operator from $L^2(\om)$ to $L^1(\om)$, and therefore $j(u_n)\to j(\bar u)$, which also implies that $J(y_n,u_n)\to J(\bar y, \bar u)$. Thus
+    \[
+    J(\bar y, \bar u)=\lim_{n\to\infty}J(y_n,u_n)\ge \limsup_{n\to\infty}J(\bar y_n, \bar u_n)\ge \liminf_{n\to\infty}J(\bar y_n, \bar u_n)\ge J(\widetilde y, \widetilde u)\ge J(\bar y,\bar u),
+    \]
+    proving that $J(\widetilde y, \widetilde u)=J(\bar y, \bar u)$, and by optimality, that $(\widetilde y, \widetilde u)$ is a solution for \eqref{eq:P_convex_statec}. By the assumption over the set $\{x\in\om: |\varphi(x)|=\sqrt{2\alpha\beta}\}$, and Theorems \ref{th:3} and \ref{th:4}, we conclude that $(\widetilde y, \widetilde u)$ is the unique solution for \eqref{eq:P_statec}, so we must have $(\widetilde y, \widetilde u)=(\bar y, \bar u)$.\\    
+    Finally, noticing that $j(\bar u)=j(\widetilde u)=\frac{\alpha}{2}\norm{\bar u}_{L^2(\om)}^2$, we have that
+    \[
+    \begin{aligned}
+    \limsup_{n\to \infty}\norm{\bar u_n}^2&\le \limsup_{n\to\infty}\frac{2}{\alpha}j(\bar u_n)\\
+    &=\limsup_{n\to\infty}\frac{2}{\alpha}\l(J(\bar y_n, \bar u_n)-\frac{1}{2}\norm{\bar y_n-y_d}_{L^2(\om)}^2\r)\\
+    &=\frac{2}{\alpha}\l(J(\bar y, \bar u)-\frac{1}{2}\norm{\bar y-y_d}_{L^2(\om)}^2\r)\\
+    &=\frac{2}{\alpha}j(\bar u)=\norm{\bar u}_{L^2(\om)}^2
+    \end{aligned}
+    \]
+    Finally, since $\limsup_{n\to\infty}\norm{\bar u_n}_{L^2(\om)}^2\ge \l(\limsup_{n\to\infty}\norm{\bar u_n}_{L^2(\om)}\r)^2$, we have that $$\limsup_{n\to\infty}\norm{\bar u}_{L^2(\om)}\le \norm{\bar u}_{L^2(\om)},$$ and due to the weak convergence of $(\bar u_n)$ to $\bar u$ and the uniform convexity of $L^2(\om)$, the strong convergence $\bar u_n\to \bar u$ follows. The strong convergence of $\bar y_n$ to $\bar y$ follows from the continuity of the operator $S$.
+\end{proof}} 
+
+
+\section{Primal Dual Algorithm}
+Here, we are concerned with the numerical solution for problem \eqref{eq:P_delta_lambda} by a primal-dual active set algorithm. In order to handle the non-smoothness and the complexity introduced by mixed constraints, we incorporate the active-set strategy from \cite{meyprftro07}. Regularization strategies and discretization approaches (finite element method) are detailed, addressing convergence properties and computational efficiency.
+
+The relations \eqref{eq:os_reg_nnmu} and \eqref{eq:os_reg_compl} of the optimality system can be equivalently written in terms of the maximum and minimum functions see \cite[(2.11)]{hint07},  as follows:
+\begin{equation}\label{eq:mu_equation}
+    \mu -\min (0, \frac{\mu}{c} + \lambda \bar u +\bar y+\delta) - \max (0, \frac{\mu}{c} + \lambda \bar u +\bar y-\delta)=0,
+\end{equation} 
+for some $c>0$  in $L^\infty(\om)$. Thus, the associated active sets are defined by
+\begin{subequations}
+ \begin{align}
+    \mathcal{A}^+  &= \{x\in\om: \frac{\mu}{c} + \lambda \bar u +\bar y-\delta>0  \},\\
+     \mathcal{A}^- &= \{x\in\om: \frac{\mu}{c} + \lambda \bar u +\bar y+\delta>0  \},
+\end{align}   
+\end{subequations}
+
+\begin{algorithm}[H]
+\caption{ Primal-Dual Active Set Algorithm with regularization} 
+\begin{algorithmic}[1]
+\item Initialize  $u_0$, $y_0$, $\varphi_0$ and $\mu_0$  and $k=0$
+
+\item Compute active and inactive sets:
+       \begin{align*}
+       	 \mathcal{A}^+_{k} = & \{x: \dfrac{\mu_{k}(x)}{c}+\lambda u_{k}(x) + y_{k}(x)  \, > \delta \}, \\
+       	 \mathcal{A}^-_{k} = & \{x: \dfrac{\mu_{k}(x)}{c}+\lambda u_{k}(x) + y_{k}(x)  \, < -\delta \}, \\
+       	 \mathcal{I}_{k} = & \{x: -\delta \leq \dfrac{\mu_{k}(x)}{c} + \lambda u_{k}(x) + y_{k}(x)\leq \delta  \}. 
+       \end{align*}
+\item Solve for $(u_{k+1}, y_{k+1}, \varphi_{k+1}, \mu_{k+1}):  $ 
+\begin{align*}
+   & \begin{array}{rll}
+    A y_{k+1} - u_{k+1} &= 0 \\
+    A^* \varphi_{k+1} - y_{k+1} -\mu_{k+1} &= -y_d \\
+    \mu_{k+1} &=0 &\text{ on } \mathcal{I}_k \\
+    \lambda u_{k+1} + y_{k+1} &=\delta & \text{ on } \mathcal{A}^+_k \\ 
+    \lambda u_{k+1} + y_{k+1} &=-\delta& \text{ on } \mathcal{A}^-_k \\
+    \end{array} \\
+% 
+&u_{k+1} = 
+\begin{cases}
+-\dfrac{1}{\alpha} (\varphi_{k+1}+ \lambda\mu_{k+1}), & \text{ on } \{ |\varphi_k + \lambda\mu_k|>\sqrt{2\alpha\beta} +\epsilon\}\\
+0, &  \text{ on } \{ |\varphi_k + \lambda\mu_k|<\sqrt{2\alpha\beta} -\epsilon\} \\
+-\dfrac{(\sqrt{2\alpha\beta}+\epsilon)}{2\alpha\epsilon} (\varphi_{k+1}+\lambda\mu_{k+1} ) \\
+\qquad+ \dfrac{({2\alpha\beta}-\epsilon^2)}{2\alpha\epsilon} \sign(\varphi_k+\lambda\mu_{k}),& \text{ on } \{ |\, |\varphi_k + \lambda\mu_k|-\sqrt{2\alpha\beta}\,|\leq \epsilon\}
+\end{cases}
+\end{align*}
+
+\end{algorithmic}\label{al:sqh}
+\end{algorithm}
+\section{Difference-of-Convex Functions Algorithm}
+
+The DC (Difference-of-Convex-functions) algorithm (DCA) is an optimization approach designed to handle a vast number of nonconvex problems whose objective function can be expressed as the difference between two convex functions in the form: 
+
+\begin{equation}\min_u G(u) - H(u) \label{eq:dc}\end{equation}
+
+In this section, we propose a DC algorithm for solving problem \eqref{eq:P_delta}. The formulation of the problem \eqref{eq:P_delta} as a minimization of difference of convex functions requires a suitable approximating function for the $L^0$. \textcolor{red}{In fact, there exists several proposals for doing this approximation, as we can see in Table 1 of Section 3 in \cite{dcsparsel0}. However, we will focus in those approximations that allow the convergence of the Semi smooth Newton method for the numerical treatment of our problem.}
+\begin{comment}
+For instance, this can be achieved by the so-called SCAD regularizer {\color{red} buscar una cita}, which is given by 
+\[
+|t|^0_{\epsilon} = 
+\begin{cases} 
+1, & \text{if } |t| \geq \epsilon, \\
+\frac{|t|}{\epsilon}, & \text{if } |t| < \epsilon,
+\end{cases}
+\]
+with \( \epsilon > 0 \) as a smoothing parameter. 
+\end{comment}
+
+\textcolor{red}{Let $g(t)=c|t|$ defined for all $t\in \reals$ with $c$ a positive constant, $h:\reals\to \reals$ a convex and semi smooth function such that the difference $\eta:g-h$ results on an approximation for $|\cdot|_0$. Therefore, if we consider the optimization problem:} 
+\begin{equation}\label{eq:ocp_scad_reg}
+    \begin{cases}
+    \displaystyle\min_{v\in L^2(\om)} \; \frac{1}{2}\norm{SB_{\lambda}v-y_d}^2_{L^2(\om)}+ \frac{\alpha}{2} \|B_\lambda v\|^2_{L^2(\om)} + \beta\int_{\om} \eta\l(B_\lambda v(x)\r)\,dx + I_{V_{ad}}(v),
+       \end{cases}
+\end{equation}
+and moreover if we define the convex functions:
+\begin{subequations}
+    \begin{align}
+	&G(v):=\frac{1}{2}\norm{S	B_{\lambda}v-y_d}_{L^2(\om)}^2+\frac{\alpha}{2}\norm{	B_{\lambda}v}_{L^2(\om)}^2+c\beta\norm{B_{\lambda}v}_{L^1(\om)}+I_{V_{ad}}(v), \label{convexI}\\
+ \mbox{ and }\nonumber\\
+ &H(v):=\beta \int_{\om}\psi\l(B_{\lambda}v\r) \; dx,\label{convexII}
+\end{align}
+\end{subequations}
+\textcolor{red}{we see that \eqref{eq:ocp_scad_reg} can be expressed as a minimization problem of the form \eqref{eq:dc}. Then, we can apply the optimality conditions of DC programming theory, which establish that if $\bar v$ is a local minimum for $F$, then $\partial H(\bar v)\subset \partial G(\bar v)$, see for example \cite{dchilbertspace}.} 
+
+\textcolor{red}{Now, following similar steps as in Proposition \ref{prop:2} we deduce that if $\bar v$ is a minimum for \eqref{eq:dc}, and $\bar u_{\lambda}=B_{\lambda}\bar v$ then the following optimality system holds:}
+
+\textcolor{red}{
+\begin{subequations}
+\begin{align}
+&\begin{array}{rlr}
+	A\bar y_\lambda & = \bar u_\lambda +f & \text{ in } \om, \\
+      \bar y_\lambda &= 0 & \text{ on } \ga, 
+\end{array}\\
+%
+&\,\begin{array}{rlr}
+	A^*\varphi_\lambda & = \bar y_\lambda -y_d + \mu_b-\mu_a& \text{ in } \om, \\
+      \varphi_\lambda &= 0 & \text{ on } \ga ,
+\end{array}\\
+&\mu_a\ge 0, \,\mu_b\ge 0, \\
+&\mu_a(\lambda \bar{u}_\lambda+\bar{y}_\lambda+\delta)=\mu_b(\lambda \bar{u}_\lambda+\bar{y}_\lambda-\delta)=0, \label{eq:os_reg_compl}\\
+& \varphi_\lambda  + \lambda(\mu_b-\mu_a) +\beta( c\zeta-\nu) = 0, \label{eq:os_reg_grad} \\
+&\zeta(x)=\begin{cases}
+    1,& \bar u(x)>0,\\
+    -1, & \bar u(x)<0,\\
+    \kappa \in [-1,1], &\bar u(x)=0,
+\end{cases}\\
+&\nu(x)\in \partial \psi(\bar u_{\lambda}(x)), \mbox{ a.a. }x\in \om
+%
+\end{align}
+\end{subequations}
+}
+
+
+
+%##########################################################################################################################
+\bibliographystyle{plain} % e.g., plain, alpha, abbrv, ieee
+%\bibliography{/Users/pm/Library/CloudStorage/Dropbox/investigacion/bib_com/litbank.bib} % Use the name of your .bib file here
+\bibliography{litbank}
+\end{document}

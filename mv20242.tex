@@ -1,0 +1,426 @@
+\documentclass[11pt,a4paper]{amsart}
+\usepackage{geometry, empheq}
+\usepackage[english]{babel}
+%\pagestyle{myheadings}
+%\textheight25.3cm
+%\oddsidemargin 1cm
+%\evensidemargin 1cm
+\usepackage{amsmath}
+\usepackage{mathabx}
+%\usepackage{showkeys}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{xcolor,graphicx}
+\usepackage{color}
+\usepackage{varioref}
+\usepackage{nicefrac}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[normalem]{ulem}
+\usepackage{multirow}
+\usepackage{enumerate}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{amsfonts}
+\usepackage{booktabs}
+\usepackage{siunitx}
+%\usepackage{hyperref}
+\usepackage{pgfplots} 
+\usepackage{pgfplotstable}
+\usepackage{tikz}
+%\usepackage{pdflscape}
+%\usepackage{pgfgantt}
+%\usepackage{pdflscape}
+%\usepgfplotslibrary{external} 
+%\tikzexternalize
+%\pgfplotsset{compat=newest} 
+%\pgfplotsset{plot coordinates/math parser=false}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{comment}
+\usepackage{caption}
+\captionsetup{skip=5pt}
+%\usepackage{url}
+
+%\selectcolormodel{gray}
+\def\b#1{{\mbox{\boldmath $#1$}}}
+\def\lewz#1{\leqno(#1)}
+%\usepackage{booktabs}
+\newcommand{\ak}{\hspace{20pt}}
+\newcommand{\bak}{\parindent=0pt}
+\newcommand{\sm}{\smallskip}
+%\newcommand{\smallskip}{\medskip}
+\newcommand{\bs}{\bigskip}
+\newcommand{\arrow}{\rightarrow}
+\newcommand{\ds}{\displaystyle}
+\newcommand{\kr}{\hspace{-0.2cm}{\bf.~}}
+\newcommand{\kw}{\rule{2mm}{2mm}}
+\newcommand{\ged}{\hfill\kw}
+\newcommand{\pf}{\b{Proof.} \ }
+\newcommand{\ssn}{({\bf SSN}) }
+\renewcommand{\div}{\text{div\,}}
+\newtheorem{example}{\textbf{Example}}
+%\newcommand{\norm}[1]{{\|  #1\|}}
+\renewcommand{\l}{\left}
+\renewcommand{\r}{\right}
+\newcommand{\om}{\Omega}
+\newcommand{\ga}{\Gamma}
+\newcommand{\fsparse}{\Upsilon}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\sign}{\mathrm{sign}}
+\newcommand{\warrow}{\rightharpoonup}
+\def\thesection{\arabic{section}}
+\def\thesubsection{\arabic{section}.\arabic{subsection}}
+\def\thefigure{\arabic{figure}\normalfont}
+\def\thetable{\arabic{table}\normalfont}
+\setcounter{table}{0}
+\newcommand{\nota}[1]{ \colorbox{red}{\textcolor{white}{\tiny{#1}}}}
+\DeclareMathOperator{\argmin}{argmin}
+%\newenvironment{proof}[1][Proof]{\b{Proof.}{\hfill\kw}}
+\renewenvironment{proof}{{Proof.}}{\hfill\kw}
+
+%\font\nowa = eufm5 scaled \magstep 3
+\font\tenpoint=cmr10
+\font\ninepoint=cmr9
+\newcounter{theassumption}
+\setcounter{theassumption}{0}
+\newtheorem{assumption}[theassumption]{{Assumption}}
+\newtheorem{proposition}{{Proposition}}
+\newtheorem{definition}{{Definition}}
+\newtheorem{lemma}{{Lemma}}
+\newtheorem{remark}{{Remark}}
+\newtheorem{corollary}{{Corollary}}
+\newtheorem{theorem}{{Theorem}}
+\newcommand{\cor}{\color{red}}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+\newcommand{\subtag}[1]{\tag{\theparentequation#1}}
+%\addbibresource{biblio.bib}
+
+\begin{document}
+	\title[Nonconvex optimal control problems]{Pointwise state constraints in sparse elliptic optimal control problems}
+	%\title{Numerical solution of nonconvex PDE--constrained optimization problems via DC programing}
+	
+	\author{Pedro Merino$^\ddag$ and Diego Vargas$^\ddag$}
+	%\address{}
+	\address{$^\ddag$Research Center of Mathematical Modeling (MODEMAT) and Department of Mathematics, Escuela Polit\'ecnica Nacional, Quito, Ecuador}
+	\keywords{}
+	\subjclass[2010]{90C26, 90C46, 49J20, 49K20}
+	\thanks{$^*$ This research is partially supported by the PH.D Program in Applied Mathematics, Escuela Politécnica Nacinal,  Quito--Ecuador.}
+	
+	\smallskip
+\begin{abstract}
+In this paper we study optimal control problems with pointwise state constraints where sparsity is induced by a penalization term. Our analysis is based on a nonsmooth approach by reformulating the imposed pointwise state constraints as an exact penalty proposed by \cite{casas2009}. 
+\end{abstract}
+	
+\maketitle 
+
+\tableofcontents
+
+
+
+\section{Introduction and problem setting}
+In this article, we address the following state-constrained distributed optimal control problem in a domain $\om \subset \R^n$ $(n=2,3)$: 
+\begin{equation}
+		\tag{$P_{\delta}$} \label{eq:OCP}
+		\begin{cases}
+			\displaystyle\min_{(y,u)} J(y,u)=\frac12 \int_\om (y(x)-y_d(x))^2 dx + j(u)\\
+			\hbox{ subject to: }\\
+			\hspace{40pt}\begin{array}{rll}
+				&Ay + \theta(x,y(x)) = u,  & \text{in } \om,\\
+                &y(x) =0, & \text{on } \ga, \\
+				&|y(x)|\le \delta&x\in \bar\om,
+			\end{array}			
+		\end{cases}
+\end{equation}
+where $j: L^2(\om) \to \R \cup \{+ \infty \}$ is defined through a real convex and continuous function $\phi:\mathbb{R}\to [0,\infty[$, by
+\begin{equation}\label{eq:cost_function_j}
+j(u)=\int_\om \phi(u(x)) dx,
+\end{equation}
+This problem was addressed in \cite{casas-trol} for the particular case when $j(\cdot)=\|\cdot\|_{L^1(\om)}$
+
+Moreover, we assume that the domain $\om$ has a Lipschitz boundary $\ga$ {\color{red}with associated unit outward normal vector $\nu$. The function $y_d\in L^2(\om)$. se necesita esto? }
+
+The state equation in \eqref{eq:OCP} is of semilinear type with a nonlinearity given by  $\theta:\om\times \R\to \R$, which is a Carath\'eodory function of class $C^2$ respect to the second variable. %In addition, the domain $\om \in \R^{n}$ is assumed to be an open bounded domain, $n=2$ or $n=3$ with a Lipschitz boundary $\Gamma$ and  defined for almost all $x \in \Gamma$.
+
+For any $y\in H_0^1(\om)$, we consider the second order differential operator $A$ defined by
+\[
+    Ay=-\sum_{i,j=1}^{n}\dfrac{\partial}{\partial x_j}\l(a_{ij} \dfrac{\partial}{\partial x_i}y\r),
+\]
+where the coefficients $a_{ij}$ are functions in $ L^\infty(\om)$ for $i,j\in \{1,\cdots,n\}$ satisfying:
+\begin{equation}\label{pdecondition}
+    \sum_{i,j=1}^{n}a_{ij}(x)\xi_{i}\xi_{j} \ge \sigma  |\xi|^2, \quad \forall  \xi\in \R^n,\mbox{ and almost all }x\in \om.
+\end{equation}
+for some  positive constant $\sigma>0$. Respect to the functions $\theta$ and $\phi$, we made the following assumptions:
+ 
+ \begin{assumption}\label{assu:1}
+ ~
+     \begin{enumerate}[(i)]
+         \item There exists three positive constants $c_1, c_2, c_3$, such that for every $t\in \R$,
+        \begin{equation}\label{eq:assump_1}
+             c_1t^2\le \phi(t)\le c_2+c_3t^2.
+        \end{equation}
+        \item $\theta(\cdot,0)\in L^2(\om)$.
+        \item $\dfrac{\partial \theta}{\partial y}(x,y)\ge 0$, for all $y\in \R$.
+        \item For all $M>0$ exists $C_{M}$ such that, for all $|y|\le M$, $\l|\dfrac{\partial^j\theta}{\partial y^j}(x,y)\r|\le C_{M}$, with $j\in\{1,2\}$.
+        \item For all $\rho>0$ and $M>0$ exists $\epsilon>0$ such that $\l|\dfrac{\partial ^2\theta}{\partial y^2}(x,y_2)-\dfrac{\partial ^2\theta}{\partial y^2}(x,y_1)\r|<\rho$, for all $|y_1|, |y_2|\le M$ with $|y_2-y_1|<\epsilon$, and for almost all $x\in \om$.
+     \end{enumerate}
+ \end{assumption}
+\begin{remark}
+   We point out that the Assumption \ref{assu:1} (i) is fulfilled by several optimal control problems which involves the sum of a Tikhonov term $\frac{\alpha}{2}\norm{u}_{L^2(\om)}^2$ with a continuous and convex but not necessary differentiable function.  For example,  $\phi$ might be taken as $\phi(t):=\frac{\alpha}{2}|t|^2+\beta|t|$, with $\alpha, \beta>0$. It is straightforward to see that, choosing $c_1=\frac{\alpha}{2}$, $c_2>\l(\frac{\beta}{\alpha}\r)^2$ and $c_3=\alpha$, the relation \eqref{eq:assump_1} is satisfied. 
+
+   However, the spirit of $\phi$ is to cover convexifications of nonsmooth penalizers such as the biconjugate of a nonconvex function. For example,
+   \begin{itemize}
+       \item for $\beta>0$,  we have the real function $t \mapsto h(t)=\frac{\alpha}{2}|t|^2+\beta|t|^0$ , with  
+       $$
+       |t|^0=\begin{cases}
+      1, &t\ne 0,\\
+      0, &t=0.
+   \end{cases}
+       $$
+   \end{itemize}
+ whose corresponding biconjugate $h^{**}$ is given by the convex function
+\begin{equation} \label{eq:bic_l0}
+  h^{**}(t) = 
+\begin{cases} 
+    \frac{\alpha t^2}{2} + \beta & \text{for } |t| \geq \sqrt{\frac{2\beta}{\alpha}}, \\
+    \sqrt{2\alpha \beta} |t| & \text{for } |t| < \sqrt{\frac{2\beta}{\alpha}}.
+\end{cases}  
+\end{equation}
+generates a relaxed convex penalizer associated to the nonconvex function $h$
+\end{remark}
+
+
+% On the other hand, if we consider control problems which cost functions are of the form
+% \[
+% J(y,u)=\frac{1}{2}\int_{\om}(y(x)-y_d(x))^2\; dx+\frac{\alpha}{2}\int_{\om}(u(x))^2\; dx+\beta\int_{\om} |u(x)|^q\; dx,
+% \]
+% defined for all $(y,u)\in H^1(\om)\times L^2(\om)$ and $q\in]0,1[$, it is clear that they lack of convexity and differentiability. One approach for avoiding this two issues is \textit{convexifying} the tracking term plus the $L^q$ penalizer, which later carry us to study a convex problem which cost function is similar as the function of \eqref{eq:OCP} (the convexification of a function will be presented later, and we refer to \cite{eck} or \cite{ito-kunisch} for more information about). Here, $\phi$ is constructed via the convexification of the one dimensional function $h(t):=\frac{\alpha}{2}|t|^2+\beta|t|^q$, defined for all $t\in \R$. Details of this convexification are discussed before. 
+ 
+% Evenmore, defining for all $t\in \R$ the function
+% \[
+% |t|^0=\begin{cases}
+%     1, &t\ne 0,\\
+%     0, &t=0,
+% \end{cases}
+% \]
+% we can rewrite the above cost function $J$ replacing $\int_{\om}|u(x)|^q\; dx$ by $\int_{\om}|u(x)|^0\; dx$. In this new case, we deal with the so called $L^0$ penalized control problems, where the lack of continuity is evident. However, in \cite{ito-kunisch} is suggested that we can study the existence of solutions for this kind of problems usign again the convexification of the tracking term plus the $L^0$ penalizer, leading us to a new cost function which has a similar form as the cost function of \eqref{eq:OCP}. In both penalized cases, the constructed function $\phi$ satisfies the Assumption \ref{assu:1} (i).\\
+% Now, if $\theta$ satisfies Assumptions \ref{assu:1} (ii)-(iv),  we have (see Chapter 4, Section 2. in \cite{trol}) that for any $u\in L^2(\om)$ there exists a unique $y\in H^1(\om)\cap C(\bar \om)$ such that 
+% \begin{equation}\label{eq:state_form}
+% \begin{cases}
+%   Ay+\theta(x,y(x))=u&\mbox{in }\om,\\
+%   \partial_{\nu}y(x)=0,&\mbox{on }\Gamma,
+% \end{cases}
+% \end{equation}
+% and furthermore, there exists a constant $c_A>0$ such that:
+% \begin{equation}
+%     \norm{y}_{H^1(\om)}+ \norm{y}_{C(\bar\om)}\leq c_A\norm{u}_{L^2(\om)}.
+% \end{equation}
+
+\subsection{The solution operator $S$} 
+Thanks the properties of $A$ together with Assumption \ref{assu:1} (ii)-(iv)  see Theorem 2.1 in \cite{casas-trol} guarantees that for any $u\in L^2(\om)$ there exists a unique $y\in H_0^1(\om)\cap C^{0,\alpha}(\bar\om)$ (for some $\alpha\in(0,1)$) such that $y$ is a solution of the semilinear equation:
+\begin{equation}\label{eq:pde_OCP}
+    \begin{cases}
+        Ay + \theta(x,y(x)) = u,  & \text{ in } \om\\
+         y(x) =0, & \text{ on } \ga, \\
+    \end{cases}
+\end{equation}
+Moreover, the following estimate holds: there exists a constant $c_y>0$ such that:
+ \begin{equation}\label{eq:state_continuity}
+\norm{y}_{H_0^1(\om)}+\norm{y}_{C^{0,\alpha}(\bar \om)}\le c_y\l(\norm{u}_{L^2(\om)}+\norm{a(\cdot,0)}_{L^2(\om)}\r).
+\end{equation}
+In view of this result, we define the solution operator $S:L^2(\om)\to H_0^1(\om)\cap C^{0,\alpha}(\bar\om)$ which assigns to each control $u$ in $L^2(\om)$ its corresponding state $y=S(u)$ solution of the PDE \eqref{eq:pde_OCP}.  
+
+{\color{red} Aquí, también mencionar la diferenciabilidad de $S$ Teorema 2.3 de [5]}
+Due to the convexity and continuity of $\phi$, and the assumptions on $\theta$, the following Proposition follows from standar arguments.
+ 
+\begin{proposition}
+Under Assumption \ref{assu:1},  there exists a solution for \eqref{eq:OCP}.
+\end{proposition}
+\begin{proof}
+    Let $\{(y_k,u_k)\}_k \subset H_0^1(\om)\times L^2(\om) $ a minimizing sequence of state-control pairs. Hence, $y_k=S(u_k)$ satisfies the state equation with right-hand side $u_k$. Since $J(y_k,u_k) \arrow \inf (P_\delta) $ as $k\to\infty$, we deduce the boundedness of $\{u_k\}_k$  as consequence of Assumption \ref{assu:1} (i). Indeed,
+    $$ c_1 \|u_k\|^2  \leq j(u_k) \leq J(y_k,u_k).$$
+In turn, the boundedness of $\{y_k\}_k =\{S(u_k)\}_k$ follows from \eqref{eq:state_continuity}.
+
+By extracting a weakly convergent subsequence in $H_0^1(\om) \times L^2(\om)$ denoted by $\{(y_k,u_k)\}_k$ (without renaming)  with weak limit $(\bar y, \bar u) \in H_0^1 \times L^2(\om)$,  by continuity of $S$ we have that $\bar y = S(\bar u)$ satisfies the state equation with right-hand side $\bar u$ implying the uniform convergence of $\{y_k\}_k$  to $\bar y \in C(\bar \om)$. Therefore,
+$$|\bar y(x)| = \lim_{k\to \infty} |\bar y_k(x)| \leq \lim_{k\to \infty} \delta =\delta, \quad \forall x \in K.$$
+This shows that $(\bar y, \bar u)$ is feasible for \eqref{eq:OCP}.
+Finally, in view of the weakly lower semi-continuity of $j$ (convex and continuous) and the strong convergence of $y_k \to \bar y$ in $L^2(\om)$, we get
+%
+\begin{align*}
+J(\bar y,\bar u) &\leq  \lim_{k\to \infty} \frac{1}{2} \|y_k -y_d\|^2_{L^2(\om)} + \liminf_{k\to \infty} j(u_k) \\ 
+&= \liminf_{k\to \infty} \l\{ \frac{1}{2} \|y_k -y_d\|^2_{L^2(\om)} + j(u_k) \r\}\\
+&=  \lim_{k\to \infty} J(y_k,u_k) = \inf(P_\delta),
+\end{align*}
+which proves that $(\bar y, \bar u)$ minimizes $J$.
+\end{proof}
+
+The operator solution $S$ introduced above is continuously differentiable and its derivative $S'(u)$ at $u$ is defined as follows: for any $v\in L^2(\om)$, the function $z$ satisfies the equation:
+\begin{equation}\label{eq:derivate_s}
+    \begin{cases}
+        Az + \frac{\partial a}{\partial y}\theta(x,y(x))z = v,  & \text{ in } \om,\\
+         z(x) =0, & \text{ on } \ga, \\
+    \end{cases}
+\end{equation}
+see Theorem 2.3 in \cite{casas-trol}. Moreover, $z\in H_0^1(\om)\cap C^{0,\alpha}(\bar\om)$. Therefore, we write $z=S'(u)v$. 
+
+%
+%    Define $j:L^2(\om)\to \mathbb{R}$ as $j(u):=\int_{\om} \phi(u(x))\; dx$. Now, the left hand side of inequality \eqref{eq:assump_1} assures the coercivity of $j$, and the right hand side assures the continuity of $j$ in $L^2(\om)$, since $\phi$ defines a continuous Nemytskii operator from $L^2(\om)$ to $L^1(\om)$, see for instance \cite{ambrosetti}. Therefore, the reduced cost function $J(Su,u)$ is convex, coercive and weakly lower semicontinuous over $L^2(\om)$. In addition, the continuity of the solution operator $S$ plus the clossedness of the set $\{y\in C(\om):|y(x)|\le \delta, \mbox{ for all }x\in \bar\om\}$, allow us to introduce classical arguments to show the existence of a solution for \eqref{eq:OCP}. 
+
+% \begin{align*}
+% J(\bar y,\bar u)-J(y,u)&=\frac{1}{2}\norm{\bar y-y}^2-(\bar y-y,y-y_d)_{L^2(\om)}+\int_{\om}\phi(\bar u)\; dx-\int_{\om}\phi(u)\: dx\\
+% &\le \frac{1}{2}\norm{\bar y-y}^2-(\varphi-\zeta,\bar u-u)_{L^2(\om)}
+% \end{align*}
+% with $\varphi=S^*(y-y_d)$, $\zeta \in \partial F(\bar u)$
+
+\section{Exact penalization of state-constraints }
+In order to introduce an exact penalization for our problem, we define a local solution for \eqref{eq:OCP}. Let $\bar u$ a solution for \eqref{eq:OCP} and $\bar y=S\bar u$ its associated state. The pair $(\bar y, \bar u)$ is a local solution for \eqref{eq:OCP} if there exists an $r>0$ such that it solves the problem
+\begin{equation}
+		\tag{$P_{\delta}^r$} \label{eq:OCP_local}
+		\begin{cases}
+			\displaystyle\min_{(y,u)} J(y,u)\\
+			\hbox{ subject to: }\\
+			\hspace{40pt}\begin{array}{rll}
+				&y=Su\\
+                &\norm{u-\bar u}_{L^2(\om)}\le r,\\
+				&|y(x)|\le \delta,&x\in \bar\om,
+			\end{array}			
+		\end{cases}
+\end{equation}
+Notice that for any feasible pair $(y,u)$ for the local problem \eqref{eq:OCP_local} we have the existence of a constant $C_r$ such that $\norm{y}_{C(\bar \om)}\le C_r$. In fact, thanks to the estimation \eqref{eq:state_continuity} and due to the fact that $\norm{u-\bar u}_{L^2(\om)}\le r$, we have
+\[
+\norm{y}_{C^{0,\alpha}(\bar\om)}\le c_y\l(\norm{\bar u}_{L^2(\om)}+r+\norm{a(\cdot,0)}_{L^2(\om)}\r);
+\]
+therefore, taking $C_r:=\norm{\bar u}_{L^2(\om)}+r+\norm{a(\cdot,0)}_{L^2(\om)}$, the result follows. Now, following similar steps as in \cite{casas2009}, and due to the convexity of $J$ in \eqref{eq:OCP_local} we can establish the existence of a $\delta_0\ge 0$ such that, for any $\delta \ge \delta_0$, \eqref{eq:OCP_local} has a solution. 
+
+The main interest for introducing problem \eqref{eq:OCP_local} is to reformulate it in terms of an \textit{exact penalized} problem, which consist of a problem without point wise state constrains but with a cost function that is finite valued on the domain of the restricted problem, (for a brief introduction and motivation for formulating exact penalized problems, see for example \cite{burke}). Before this, we introduce the definition of a strongly stable problem, also called a calmed problem, see \cite{casas2009}.
+The problem \eqref{eq:OCP_local} is called strongly stable if there exists two constants $C_\delta, \epsilon_\delta>0$ such that
+\[
+\inf (P^{r}_{\delta})-\inf (P^r_{\delta'})\le C_{\delta}(\delta'-\delta),
+\]
+for all $\delta'\in [\delta, \delta+\epsilon_\delta]$. The notation $\inf (P^{r}_{\delta})$ stands for the infimum of problem \eqref{eq:OCP_local}.
+Now, due to Propositions 1 and 2 in \cite{casas2009}, for every $\delta\ge \delta_0$ except possible on a subset of $[\delta_0,C_r)$ with null measure, the problem \eqref{eq:OCP_local} is strongly stable, and moreover, there exists a $\rho_0>0$ such that for any $\rho>\rho_0$, a strict solution of \eqref{eq:OCP_local} is a strict solution of the problem:
+\begin{equation}
+		\tag{$P_{\delta,\rho}^r$} \label{eq:OCP_penalized_r}
+		\begin{cases}
+			\displaystyle\min_{(y,u)} J(y,u)+\rho\l(\norm{y}_{C(\bar\om)}-\delta\r)^+\\
+			\hbox{ subject to: }\\
+			\hspace{40pt}\begin{array}{rll}
+				&y=Su,\\
+                &\norm{u-\bar u}_{L^2(\om)}\le r,
+			\end{array}			
+		\end{cases}
+\end{equation}
+where the notation $\l(\cdot\r)^+$ stands for $(\cdot)^+:=\max(0,\cdot)$. Furthemore, thanks to Proposition 2 (3) in \cite{casas2009}, we follow that any local solution of \eqref{eq:OCP} is a local solution of
+\begin{equation}
+		\tag{$P_{\delta,\rho}$} \label{eq:OCP_penalized}
+		\begin{cases}
+			\displaystyle\min_{(y,u)} J(y,u)+\rho\l(\norm{y}_{C(\bar\om)}-\delta\r)^+\\
+			\hbox{ subject to: }\\
+			\hspace{40pt}\begin{array}{rll}
+				&y=Su,              
+			\end{array}			
+		\end{cases}
+\end{equation}
+for every $\rho\ge \rho_0$, provided that there exists a small enough $r>0$ such that \eqref{eq:OCP_local} is strongly stable.
+
+In order to deduce an optimally system for \eqref{eq:OCP_penalized}, we recall that the space of regular Borel measures over a compact set $K\subset \mathbb{R}^n$ is identified with the dual space of $C(K)$. This space is a Banach space, endowed with the norm
+\[
+\norm{\mu}_{M(K)}:=\sup \l\{\int_{K}z(x)\;d\mu(x): z\in C(K) \mbox{ and }\norm{z}_{C(K)}\le 1 \r\}.
+\]
+
+\begin{lemma}
+    Let $F_{\rho}:C(\bar\om)\to \mathbb{R}$ the function defined by $F_{\rho}(y)=\rho\l(\norm{y}_{C(\bar\om)}-\delta\r)^+$. Then, the subdifferential of $F_{\rho}$ is given by
+    \begin{equation}\label{eq:subdiff_f_rho_nedelta}
+        \partial F_{\rho}(y)=\begin{cases}
+            \rho\{\mu \in M(\bar \om): \langle \mu, y\rangle=\norm{y}_{C(\bar \om)} \mbox{ and }\norm{\mu}_{M(\bar\om)}=1\}, & \norm{y}_{C(\bar\om)}>\delta,\\            
+            \rho\{\mu \in M(\bar\om): \langle \mu,h\rangle\le 0 \mbox{ for all }h\in C(\bar\om)\},&\norm{y}_{C(\bar\om)}<\delta
+        \end{cases}
+    \end{equation}
+    and if $\norm{y}=\delta$,
+    \begin{equation}\label{eq:subdiff_f_rho_eqdelta}
+        \partial F_{\rho}(y)\subset \rho\{\mu \in M(\bar\om): \langle\mu,h\rangle \le \norm{h}_{C(\bar\om)} \mbox{ for all }h\in C(\bar\om)\}.
+    \end{equation}
+\end{lemma}
+\begin{proof}
+    If we define $f_1:\mathbb{R}\to \mathbb{R}$, and $f_2:C(\bar \om)\to \mathbb{R}$ as
+    \[
+    f_1(t)=\max(0,t),\qquad f_2(y)=\norm{y}_{C(\bar \om)}-\delta,
+    \]
+    then clearly $F_{\rho}=\rho \l(f_1\circ f_2\r)$. Now, it can be shown that $F_{\rho}(y;h)$ exists for any $y\in C(\bar \om)$ and any direction $h\in C(\bar \om)$, and moreover $F_{\rho}'(y;h)=(f_1\circ f_2)'(y;h)=f_1'(f_2(y);f'(y;h))$, see for example the first part of Theorem 4.19 in \cite{clason-valk}. Now, due to the properties of the convex functions, we have that
+    \begin{equation}\label{eq:lemma_1_1}   
+    \begin{split}
+        \partial (f_1\circ f_2)(y)&=\{\mu^*\in M(\bar\om): \langle \mu, h \rangle\le (f_1\circ f_2)'(y;h)\mbox{ for all }h\in C(\bar \om) \}\\
+        &=\{\mu^*\in M(\bar\om): \langle \mu, h \rangle\le f_1'(f_2(y);f_2'(y;h))\mbox{ for all }h\in C(\bar \om)\}.
+    \end{split}
+    \end{equation}
+    On the other hand, it follows that
+    \[    f_1'(f_2(y);f_2'(y;h))=\sup_{w^*\in \partial f_1(f_2(y))} w^*\cdot f_2'(y;h),
+    \]
+    see for example Theorem 13.17 in \cite{clason-valk}. However, due to the fact that
+    \[
+    \partial f_1(t)=\begin{cases}
+        \{1\},&t>0\\
+        [0,1],&t=0\\
+        \{0\},&t<0,
+    \end{cases}
+    \]
+    we have that, for any $h\in C(\bar\om)$, 
+    \[
+    w^*\cdot f_2'(y;h)=\begin{cases}
+        f_2'(y;h),& \norm{y}_{C(\bar\om)}>\delta,\\
+        \lambda f_2'(y;h), &\norm{y}_{C(\bar\om)}=\delta, 0\le \lambda\le 1\\
+        0, &\norm{y}_{C(\bar\om)}<\delta.
+    \end{cases}
+    \]
+    Therefore, it is clear that when $\norm{y}>\delta$, $f_1'(f_2(y);f_2'(y;h))=f_2'(y;h)$, and, on the other hand, if $\norm{y}<\delta$, $f_1'(f_2(y);f_2'(y;h))=0$. Finally, when $\norm{y}=\delta$, we have $f_1'(f_2(y);f_2'(y;h))=\max(0,f_2'(y;h))$. Again, using the relation between the directional derivatives and the elements of the subdifferential of a function, we have that 
+    \[
+    f_2'(y;h)=\sup_{\mu\in \partial f_2(y)}\langle \mu,h\rangle\le \sup_{\norm{\mu}\le 1}|\langle \mu,h\rangle|=\norm{h}_{C(\bar\om)};
+    \]
+thus, $f_1'(f_2(y);f_2'(y;h))\le \norm{h}_{C(\bar\om)}$. Therefore, if we recall \eqref{eq:lemma_1_1}, we have that when $\norm{y}_{C(\bar \om)}>\delta$, we have
+\begin{align*}
+    \partial (f_1\circ f_2)(y)
+    &=\{\mu^*\in M(\bar\om):\langle \mu, h \rangle_{M(\bar \om),C(\bar\om)}\le f_2'(y;h) \mbox{ for all }h\in C(\bar \om)\}\\
+    &=\partial f_2(y),
+\end{align*}
+while if $\norm{y}<\delta$, we have
+\[
+    \partial (f_1\circ f_2)(y)
+    =\{\mu^*\in M(\bar\om):\langle \mu, h \rangle_{M(\bar \om),C(\bar\om)}\le 0 \mbox{ for all }h\in C(\bar \om)\}
+\]
+Finally, when $\norm{y}_{C(\bar\om)}=\delta$, the inclusion \eqref{eq:subdiff_f_rho_eqdelta} follows due to the inequality deduced for $f'_1(f_2(y);f_2'(y;h))$. Recalling the definition of the subdifferential for a norm on a Banach space, see fr example Theorem 4.6 in \cite{clason-valk}, and due to the properties of the convex subdifferential for convex functions, \eqref{eq:subdiff_f_rho_nedelta} follows.
+\end{proof}
+
+
+\section{Optimality conditions}
+
+\section{Exact penalization in sparse optimal control problems}
+
+\section{Numerical Experiments}
+
+\section{Conclusions}
+
+\begin{thebibliography}{99}
+\bibitem{albertraymond}
+Alibert, J-J., and J-P. Raymond. "Boundary control of semilinear elliptic equations with discontinuous leading coefficients and unbounded controls." Numerical Functional Analysis and Optimization 18.3-4 (1997): 235-250.
+\bibitem{ambrosetti}
+Ambrosetti, Antonio, and Giovanni Prodi. A primer of nonlinear analysis. No. 34. Cambridge University Press, 1995.
+
+\bibitem{burke}
+Burke, James V. Calmness and exact penalization. SIAM Journal on control and optimization 29.2 (1991): 493-497.
+
+\bibitem{casas2009}
+Eduardo Casas. Exact penalization of pointwise state constraints for optimal control problems. Control and Cybernetics 38. (2009), pp. 1131-1150.
+
+\bibitem{casas-trol}
+Eduardo Casas and Fredi Tröltzsch. State-constrained semilinear elliptic optimization problems with unrestricted sparse controls. Mathematical Control \& Related Fields 10.3 (2020).
+
+\bibitem{clason-valk}
+Clason, Christian, and Tuomo Valkonen. Introduction to nonsmooth analysis and optimization. arXiv preprint arXiv:2001.00216 (2020).
+
+\bibitem{trol}
+Fredi Tr\"oltzsch.
+\newblock {\em Optimal control of partial differential equations: theory, methods, and applications}
+\newblock American Mathematical Society, Vol.112, 2010.
+
+\end{thebibliography}
+\end{document}
